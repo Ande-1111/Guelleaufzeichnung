@@ -668,13 +668,13 @@ function renderSammelFlaechen(){
   flaechen.forEach(f=>{
     const div=document.createElement("div");
     div.className="checkline";
-    div.innerHTML=`<input type="checkbox" id="s-f-${f.id}" data-fl="${f.id}"><label for="s-f-${f.id}" style="margin:0;text-transform:none;font-size:.95rem">${f.name} (${fmt(f.groesseHa)} ha)</label>`;
+    div.innerHTML=`<input type="checkbox" id="s-f-${f.id}" data-fl="${f.id}"><label for="s-f-${f.id}" style="margin:0;text-transform:none;font-size:.95rem">${xmlEsc(f.name)} (${fmt(f.groesseHa)} ha)</label>`;
     box.appendChild(div);
     if(f.kategorie==="acker"){
       const sub=document.createElement("div");
       sub.className="subfield";
       sub.id=`s-sub-${f.id}`;
-      sub.innerHTML=`<label for="s-e-${f.id}">Einarbeitung ${f.name} (optional)</label><input type="datetime-local" id="s-e-${f.id}">`;
+      sub.innerHTML=`<label for="s-e-${f.id}">Einarbeitung ${xmlEsc(f.name)} (optional)</label><input type="datetime-local" id="s-e-${f.id}">`;
       box.appendChild(sub);
     }
   });
@@ -767,8 +767,8 @@ function renderFlaechen(){
   flaechen.forEach(f=>{
     const div=document.createElement("div");
     div.className="list-item";
-    const feldstuck=f.feldstückNummer?` · Feldstück ${f.feldstückNummer}`:"";
-    div.innerHTML=`<div class="grow"><div class="title">${f.name}</div><div class="meta">${fmt(f.groesseHa)} ha · ${f.kategorie}${feldstuck}</div></div><button class="small" onclick="editFlaeche('${f.id}')">✎</button>`;
+    const feldstuck=f.feldstückNummer?` · Feldstück ${xmlEsc(f.feldstückNummer)}`:"";
+    div.innerHTML=`<div class="grow"><div class="title">${xmlEsc(f.name)}</div><div class="meta">${fmt(f.groesseHa)} ha · ${f.kategorie}${feldstuck}</div></div><button class="small" onclick="editFlaeche('${f.id}')">✎</button>`;
     box.appendChild(div);
   });
 }
@@ -869,7 +869,7 @@ function renderUebersicht(){
   list.forEach(e=>{
     const f=flaechen.find(x=>x.id===e.flaecheId);
     const tr=document.createElement("tr");
-    tr.innerHTML=`<td>${new Date(e.datumZeit).toLocaleDateString("de-DE")}</td><td>${f?.name||"–"}</td><td>${e.material}</td><td>${sepLabel(e)}</td><td class="num">${fmt(e.mengeM3)}</td><td>${fmtDT(e.einarbeitungZeit)}</td><td><button class="small" onclick="editEintrag('${e.id}')">✎</button></td>`;
+    tr.innerHTML=`<td>${new Date(e.datumZeit).toLocaleDateString("de-DE")}</td><td>${xmlEsc(f?.name||"–")}</td><td>${e.material}</td><td>${sepLabel(e)}</td><td class="num">${fmt(e.mengeM3)}</td><td>${fmtDT(e.einarbeitungZeit)}</td><td><button class="small" onclick="editEintrag('${e.id}')">✎</button></td>`;
     tb.appendChild(tr);
   });
   const total=list.reduce((s,e)=>s+e.mengeM3,0);
@@ -1392,7 +1392,7 @@ function renderPresetEditor(){
     items.forEach(p=>{
       const row=document.createElement("div");
       row.className="preset-item";
-      row.innerHTML=`<div class="grow"><div>${p.name}</div><div class="meta">${def.fmt(p)}</div></div>`;
+      row.innerHTML=`<div class="grow"><div>${xmlEsc(p.name)}</div><div class="meta">${def.fmt(p)}</div></div>`;
       const delBtn=document.createElement("button");
       delBtn.className="small danger"; delBtn.type="button"; delBtn.textContent="Löschen";
       delBtn.addEventListener("click",()=>{
