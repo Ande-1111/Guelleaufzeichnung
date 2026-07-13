@@ -1,4 +1,4 @@
-const CACHE_NAME = "guelle-mist-v1";
+const CACHE_NAME = "guelle-mist-v2";
 const ASSETS = ["guelle-app.html", "manifest.json", "icon.svg"];
 
 self.addEventListener("install", event => {
@@ -17,15 +17,15 @@ self.addEventListener("activate", event => {
   self.clients.claim();
 });
 
+// Network-first: bei Internetverbindung immer die aktuelle Version laden
+// (und den Offline-Cache dabei aktualisieren). Nur wenn kein Netz verfügbar
+// ist, wird auf die zuletzt gecachte Version zurückgegriffen.
 self.addEventListener("fetch", event => {
   event.respondWith(
-    caches.match(event.request).then(cached => {
-      if (cached) return cached;
-      return fetch(event.request).then(response => {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
-        return response;
-      }).catch(() => cached);
-    })
+    fetch(event.request).then(response => {
+      const copy = response.clone();
+      caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+      return response;
+    }).catch(() => caches.match(event.request))
   );
 });
