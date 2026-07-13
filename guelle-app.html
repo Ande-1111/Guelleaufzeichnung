@@ -1,0 +1,1443 @@
+<!doctype html>
+<html>
+<head>
+<meta charset=utf8>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gülle- & Mist-Dokumentation</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#3f6b2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Gülle & Mist">
+<link rel="apple-touch-icon" href="icon.svg">
+<style>
+:root{
+  --bg:#f4f3ee; --surface:#ffffff; --surface2:#eceae2;
+  --ink:#26301f; --ink2:#5c6653; --line:#d8d5c8;
+  --accent:#3f6b2e; --accent-ink:#ffffff; --accent-soft:#e2ecd9;
+  --brown:#7a5a34; --brown-soft:#efe6d8;
+  --danger:#a33224; --danger-soft:#f6e2de;
+  --ok:#2e6b46;
+  --radius:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#1b1f17; --surface:#252b1f; --surface2:#2e3527;
+    --ink:#e8e9e0; --ink2:#a7b099; --line:#3c4431;
+    --accent:#7fae5f; --accent-ink:#16200e; --accent-soft:#33402a;
+    --brown:#c39a63; --brown-soft:#3d3323;
+    --danger:#e07a6b; --danger-soft:#4a2620;
+    --ok:#7fbf94;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#f4f3ee; --surface:#ffffff; --surface2:#eceae2;
+  --ink:#26301f; --ink2:#5c6653; --line:#d8d5c8;
+  --accent:#3f6b2e; --accent-ink:#ffffff; --accent-soft:#e2ecd9;
+  --brown:#7a5a34; --brown-soft:#efe6d8;
+  --danger:#a33224; --danger-soft:#f6e2de;
+  --ok:#2e6b46;
+}
+:root[data-theme="dark"]{
+  --bg:#1b1f17; --surface:#252b1f; --surface2:#2e3527;
+  --ink:#e8e9e0; --ink2:#a7b099; --line:#3c4431;
+  --accent:#7fae5f; --accent-ink:#16200e; --accent-soft:#33402a;
+  --brown:#c39a63; --brown-soft:#3d3323;
+  --danger:#e07a6b; --danger-soft:#4a2620;
+  --ok:#7fbf94;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+.app{max-width:560px;margin:0 auto;padding:0 12px 96px}
+header.top{
+  padding:18px 4px 10px; display:flex;align-items:baseline;gap:10px;
+}
+header.top h1{font-size:1.25rem;margin:0;letter-spacing:.01em}
+header.top .sub{color:var(--ink2);font-size:.8rem}
+.panel{display:none}
+.panel.active{display:block}
+h2{font-size:1.05rem;margin:18px 0 10px}
+.card{
+  background:var(--surface); border:1px solid var(--line);
+  border-radius:var(--radius); padding:14px; margin-bottom:12px;
+}
+label{display:block;font-size:.82rem;color:var(--ink2);margin:10px 0 4px;letter-spacing:.02em;text-transform:uppercase}
+input[type=text],input[type=number],input[type=datetime-local],select{
+  width:100%; padding:12px; font-size:1rem;
+  border:1px solid var(--line); border-radius:8px;
+  background:var(--surface2); color:var(--ink);
+}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.row{display:flex;gap:10px}
+.row>*{flex:1;min-width:0}
+button{
+  font:inherit; cursor:pointer; border-radius:8px; border:1px solid var(--line);
+  background:var(--surface2); color:var(--ink); padding:12px 14px; min-height:48px;
+}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600;width:100%;margin-top:14px;font-size:1.05rem}
+button.small{min-height:36px;padding:6px 10px;font-size:.85rem}
+button.danger{color:var(--danger);border-color:var(--danger)}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{flex:1;border:none;border-radius:0;background:var(--surface2)}
+.seg button.on{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.checkline{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line)}
+.checkline:last-child{border-bottom:none}
+.checkline input[type=checkbox]{width:22px;height:22px;accent-color:var(--accent);flex:none}
+.checkline .name{flex:1}
+.checkline .meta{color:var(--ink2);font-size:.85rem}
+.calc{
+  background:var(--accent-soft); border-radius:8px; padding:10px 12px; margin-top:10px;
+  font-variant-numeric:tabular-nums; font-weight:600;
+}
+.err{
+  background:var(--danger-soft); color:var(--danger); border-radius:8px;
+  padding:10px 12px; margin-top:10px; font-size:.92rem; display:none;
+}
+.err.show{display:block}
+.hint{color:var(--ink2);font-size:.82rem;margin-top:6px}
+.list-item{
+  display:flex;align-items:center;gap:10px;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:11px 12px;margin-bottom:8px;
+}
+.list-item .grow{flex:1;min-width:0}
+.list-item .title{font-weight:600}
+.list-item .meta{color:var(--ink2);font-size:.84rem}
+.badge{
+  display:inline-block;font-size:.72rem;padding:2px 8px;border-radius:99px;
+  font-weight:600;letter-spacing:.03em;
+}
+.badge.acker{background:var(--brown-soft);color:var(--brown)}
+.badge.wiese{background:var(--accent-soft);color:var(--accent)}
+.badge.guelle{background:var(--accent-soft);color:var(--accent)}
+.badge.mist{background:var(--brown-soft);color:var(--brown)}
+.badge.sep{background:var(--surface2);color:var(--ink2);border:1px solid var(--line)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px}
+.stat .v{font-size:1.45rem;font-weight:700;font-variant-numeric:tabular-nums}
+.stat .l{color:var(--ink2);font-size:.78rem;text-transform:uppercase;letter-spacing:.03em}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.88rem;min-width:520px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:.74rem;text-transform:uppercase;letter-spacing:.04em;color:var(--ink2)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:none}
+.empty{color:var(--ink2);text-align:center;padding:24px 10px;font-size:.92rem}
+nav.tabs{
+  position:fixed;left:0;right:0;bottom:0;
+  background:var(--surface);border-top:1px solid var(--line);
+  display:flex;justify-content:center;
+  padding:4px max(6px, env(safe-area-inset-left)) max(6px, env(safe-area-inset-bottom));
+  z-index:10;
+}
+nav.tabs .inner{display:flex;width:100%;max-width:560px}
+nav.tabs button{
+  flex:1;border:none;background:none;color:var(--ink2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  font-size:.62rem;padding:4px 2px;min-height:56px;border-radius:8px;
+  cursor:pointer;
+}
+nav.tabs button svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+nav.tabs button.on{color:var(--accent);background:var(--accent-soft);font-weight:600}
+.subfield{margin-left:32px;margin-top:6px;display:none}
+.subfield.show{display:block}
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.45);
+  display:none;align-items:center;justify-content:center;z-index:100;padding:20px;
+}
+.modal-overlay.show{display:flex}
+.modal-box{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:20px;max-width:340px;width:100%;
+}
+.modal-box p{margin:0 0 16px;font-size:.98rem}
+.modal-box .row button{width:100%}
+.toast{
+  position:fixed;left:50%;bottom:76px;transform:translateX(-50%) translateY(12px);
+  background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:10px;
+  font-size:.88rem;max-width:88%;text-align:center;opacity:0;pointer-events:none;
+  transition:opacity .2s,transform .2s;z-index:200;box-shadow:0 6px 20px rgba(0,0,0,.3);
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.rgrid{display:grid;grid-template-columns:1fr 1fr;gap:18px;text-align:center}
+.rgrid .lbl{color:var(--ink2);font-size:.78rem;text-transform:uppercase;letter-spacing:.03em}
+.rgrid .big{font-size:2.4rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;margin-top:4px}
+.rgrid .big.warn{color:var(--danger)}
+.rgrid .unit{color:var(--ink2);font-size:.82rem;margin-top:2px}
+.rgrid .sub{color:var(--ink2);font-size:.76rem;margin-top:8px;line-height:1.4}
+.rgrid .sub.warn{color:var(--danger);font-weight:600}
+.rdivider{border:none;border-top:1px solid var(--line);margin:16px 0}
+.stepper{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px}
+.stepper button{min-height:40px;min-width:40px;padding:0;font-size:1.2rem;line-height:1}
+.stepper .su{color:var(--ink2);font-size:.78rem;min-width:38px}
+.gps-btn{width:100%;margin-top:8px;font-size:.85rem;min-height:40px}
+.gps-btn.on{background:var(--accent-soft);color:var(--accent);border-color:var(--accent);font-weight:600}
+.nutri-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center;margin:16px 0 4px}
+.nutri-grid .v{font-size:1.35rem;font-weight:700;font-variant-numeric:tabular-nums}
+.nutri-grid .l{color:var(--ink2);font-size:.64rem;text-transform:uppercase;letter-spacing:.02em}
+.nutri-grid .u{color:var(--ink2);font-size:.64rem}
+.rhint{
+  background:var(--danger-soft); color:var(--danger); border-radius:8px;
+  padding:8px 10px; margin-top:8px; font-size:.8rem; display:none;
+}
+.rhint.show{display:block}
+.compl-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 16px;font-size:.84rem;margin-top:8px}
+.compl-grid .h{font-weight:700;margin-top:10px;grid-column:1/-1;font-size:.72rem;text-transform:uppercase;letter-spacing:.03em;color:var(--ink2)}
+.compl-grid .row2{display:flex;justify-content:space-between;gap:8px}
+.compl-grid .row2 .k{color:var(--ink2)}
+.settings-toggle{width:100%;margin-top:12px}
+.preset-editor{margin-top:12px;border-top:1px solid var(--line);padding-top:12px;display:none}
+.preset-editor.show{display:block}
+.preset-cat{margin-bottom:18px}
+.preset-cat h3{font-size:.82rem;text-transform:uppercase;letter-spacing:.03em;color:var(--ink2);margin:0 0 8px}
+.preset-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:.88rem}
+.preset-item:last-child{border-bottom:none}
+.preset-item .grow{flex:1}
+.preset-item .meta{color:var(--ink2);font-size:.78rem}
+.preset-add{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.preset-add input{padding:9px}
+.preset-add button{grid-column:1/-1}
+</style>
+</head>
+
+<body>
+<div class="modal-overlay" id="confirm-overlay">
+  <div class="modal-box">
+    <p id="confirm-text">Wirklich löschen?</p>
+    <div class="row">
+      <button type="button" id="confirm-no">Abbrechen</button>
+      <button type="button" id="confirm-yes" class="danger">Löschen</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="export-overlay">
+  <div class="modal-box" style="max-width:520px">
+    <p id="export-text">Export</p>
+    <textarea id="export-text-area" readonly style="width:100%;height:200px;font-family:monospace;font-size:.78rem;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--surface2);color:var(--ink)"></textarea>
+    <div class="row" style="margin-top:10px">
+      <button type="button" id="export-copy">In Zwischenablage kopieren</button>
+      <button type="button" id="export-close" class="primary" style="margin-top:0">Fertig</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<div class="app">
+<header class="top">
+  <h1>Gülle &amp; Mist</h1>
+  <span class="sub">Ausbringungs-Dokumentation</span>
+</header>
+
+<section class="panel active" id="panel-flaechen">
+  <div class="card">
+    <h2 style="margin-top:0">Neue Fläche anlegen</h2>
+    <label for="fl-name">Name der Fläche</label>
+    <input type="text" id="fl-name" placeholder="z. B. Hausacker">
+    <label for="fl-feldstuck">Feldstücknummer (optional)</label>
+    <input type="text" id="fl-feldstuck" placeholder="z. B. 42">
+    <div class="row">
+      <div>
+        <label>Kategorie</label>
+        <div class="seg" id="fl-kat">
+          <button type="button" data-v="acker" class="on">Acker</button>
+          <button type="button" data-v="wiese">Wiese</button>
+        </div>
+      </div>
+      <div>
+        <label for="fl-ha">Größe (ha)</label>
+        <input type="text" inputmode="decimal" id="fl-ha" placeholder="z. B. 2,5">
+      </div>
+    </div>
+    <div class="err" id="fl-err"></div>
+    <button class="primary" id="fl-save">Fläche speichern</button>
+    <button id="fl-cancel" style="width:100%;margin-top:8px;display:none">Bearbeiten abbrechen</button>
+    <button type="button" id="fl-delete" class="danger" style="width:100%;margin-top:8px;display:none">Fläche löschen</button>
+  </div>
+  <h2>Meine Flächen</h2>
+  <div id="fl-list"></div>
+</section>
+
+<section class="panel" id="panel-eintrag">
+  <div class="card">
+    <h2 style="margin-top:0">Ausbringung erfassen</h2>
+    <label for="e-flaeche">Fläche</label>
+    <select id="e-flaeche"></select>
+    <label for="e-datum">Datum &amp; Uhrzeit</label>
+    <input type="datetime-local" id="e-datum">
+    <label>Material</label>
+    <div class="seg" id="e-mat">
+      <button type="button" data-v="guelle" class="on">Gülle</button>
+      <button type="button" data-v="mist">Mist</button>
+    </div>
+    <div id="e-sep-wrap">
+      <label>Separiert</label>
+      <div class="seg" id="e-sep">
+        <button type="button" data-v="nein" class="on">Nein</button>
+        <button type="button" data-v="ja">Ja</button>
+      </div>
+    </div>
+    <label>Menge</label>
+    <div class="seg" id="e-modus">
+      <button type="button" data-v="fass" class="on" id="e-modus-fass-btn">Fässer</button>
+      <button type="button" data-v="m3">m³</button>
+      <button type="button" data-v="proha">m³/ha</button>
+    </div>
+    <div id="e-fass-wrap">
+      <label for="e-fass" id="e-fass-label">Anzahl Fässer</label>
+      <input type="text" inputmode="decimal" id="e-fass" placeholder="5">
+      <div class="calc" id="e-calc"></div>
+    </div>
+    <div id="e-m3-wrap" style="display:none">
+      <label for="e-m3">Menge (m³)</label>
+      <input type="text" inputmode="decimal" id="e-m3" placeholder="50">
+    </div>
+    <div id="e-proha-wrap" style="display:none">
+      <label for="e-proha">Menge pro ha (m³/ha)</label>
+      <input type="text" inputmode="decimal" id="e-proha" placeholder="20">
+      <div class="calc" id="e-calc-proha"></div>
+    </div>
+    <div id="e-einarb-wrap" style="display:none">
+      <label for="e-einarb">Einarbeitung (Datum &amp; Uhrzeit)</label>
+      <input type="datetime-local" id="e-einarb">
+      <div class="hint">Muss innerhalb von 24 Stunden nach der Ausbringung erfolgen.</div>
+    </div>
+    <div class="err" id="e-err"></div>
+    <button class="primary" id="e-save">Eintrag speichern</button>
+    <button id="e-cancel" style="width:100%;margin-top:8px;display:none">Bearbeiten abbrechen</button>
+    <button type="button" id="e-delete" class="danger" style="width:100%;margin-top:8px;display:none">Eintrag löschen</button>
+  </div>
+</section>
+
+<section class="panel" id="panel-sammel">
+  <div class="card">
+    <h2 style="margin-top:0">Sammeleintrag</h2>
+    <p class="hint" style="margin-top:0">Menge pro ha eingeben und mehrere Flächen auswählen.</p>
+    <label for="s-datum">Datum &amp; Uhrzeit</label>
+    <input type="datetime-local" id="s-datum">
+    <label>Material</label>
+    <div class="seg" id="s-mat">
+      <button type="button" data-v="guelle" class="on">Gülle</button>
+      <button type="button" data-v="mist">Mist</button>
+    </div>
+    <div id="s-sep-wrap">
+      <label>Separiert</label>
+      <div class="seg" id="s-sep">
+        <button type="button" data-v="nein" class="on">Nein</button>
+        <button type="button" data-v="ja">Ja</button>
+      </div>
+    </div>
+    <label for="s-proha">Menge pro ha (m³/ha)</label>
+    <input type="text" inputmode="decimal" id="s-proha" placeholder="20">
+    <label>Flächen auswählen</label>
+    <div id="s-flaechen"></div>
+    <div class="calc" id="s-calc" style="display:none"></div>
+    <button class="primary" id="s-save">Sammeleintrag speichern</button>
+  </div>
+</section>
+
+<section class="panel" id="panel-uebersicht">
+  <div class="card">
+    <div class="row">
+      <div><label for="u-flaeche">Fläche</label><select id="u-flaeche"><option value="">Alle</option></select></div>
+      <div><label for="u-jahr">Jahr</label><select id="u-jahr"><option value="">Alle</option></select></div>
+    </div>
+  </div>
+  <div id="u-stats" class="stats"></div>
+  <button type="button" id="u-export" style="width:100%;margin-bottom:12px">Als Excel exportieren</button>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Datum</th><th>Fläche</th><th>Material</th><th>Sep.</th><th class="num">m³</th><th>Einarbeitung</th><th></th></tr></thead>
+      <tbody id="u-tbody"></tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel" id="panel-rechner">
+  <div class="card">
+    <div class="row">
+      <div><label for="r-beispiel">Beispiel laden</label><select id="r-beispiel"><option value="">– wählen –</option></select></div>
+    </div>
+    <div class="rgrid">
+      <div>
+        <div class="lbl">Ausbringmenge</div>
+        <div class="big" id="r-menge">0</div>
+        <div class="unit">m³/ha</div>
+        <div class="sub" id="r-menge-sub"></div>
+      </div>
+      <div>
+        <div class="lbl">Geschwindigkeit</div>
+        <div class="big" id="r-speed">0.0</div>
+        <div class="unit">km/h</div>
+        <div class="stepper">
+          <button type="button" id="r-speed-minus">–</button>
+          <button type="button" id="r-speed-plus">+</button>
+        </div>
+        <button type="button" class="gps-btn" id="r-gps">GPS Modus Aus</button>
+      </div>
+    </div>
+    <hr class="rdivider">
+    <div class="rgrid">
+      <div>
+        <div class="lbl">Reichweite</div>
+        <div class="big" id="r-reich">0</div>
+        <div class="unit">Meter</div>
+      </div>
+      <div>
+        <div class="lbl">Zapfwellendrehzahl</div>
+        <div class="big" id="r-rpm">0</div>
+        <div class="unit">U/min</div>
+        <div class="stepper">
+          <button type="button" id="r-rpm-minus">–</button>
+          <button type="button" id="r-rpm-plus">+</button>
+        </div>
+      </div>
+    </div>
+    <div class="rhint" id="r-gps-hint">GPS ist in dieser Ansicht nicht verfügbar – bitte Geschwindigkeit manuell einstellen.</div>
+    <div class="nutri-grid">
+      <div><div class="v" id="r-n">0</div><div class="l">N Gesamt</div><div class="u">kg/ha</div></div>
+      <div><div class="v" id="r-nh4">0</div><div class="l">NH4-N</div><div class="u">kg/ha</div></div>
+      <div><div class="v" id="r-p">0</div><div class="l">P2O5</div><div class="u">kg/ha</div></div>
+      <div><div class="v" id="r-k">0</div><div class="l">K2O</div><div class="u">kg/ha</div></div>
+    </div>
+    <label for="r-pumpe">Pumpentyp</label>
+    <select id="r-pumpe"></select>
+    <label for="r-fass">Fassvolumen</label>
+    <select id="r-fass"></select>
+    <label for="r-breite">Verteilbreite</label>
+    <select id="r-breite"></select>
+    <label for="r-guelle">Gülleart</label>
+    <select id="r-guelle"></select>
+
+    <div class="compl-grid">
+      <div class="row2"><span class="k">Gesamt N (ab Lager)</span><span id="r-c-ngesamt">–</span></div>
+      <div class="row2"><span class="k">§ Beschränkung NitratRL</span><span id="r-c-grenze">–</span></div>
+      <div class="h">Nährstoffgehalte (kg/m³)</div>
+      <div class="h">Kulturbedarf (kg/ha)</div>
+      <div class="row2"><span class="k">NH4-N</span><span id="r-c-nh4">–</span></div>
+      <div class="row2"><span class="k">NH4-N</span><span id="r-c-kb-nh4">–</span></div>
+      <div class="row2"><span class="k">P2O5</span><span id="r-c-p">–</span></div>
+      <div class="row2"><span class="k">P2O5</span><span id="r-c-kb-p">–</span></div>
+      <div class="row2"><span class="k">K2O</span><span id="r-c-k">–</span></div>
+      <div class="row2"><span class="k">K2O</span><span id="r-c-kb-k">–</span></div>
+    </div>
+    <label for="r-verlust">% Aufbringverluste (NH4-N) lt. DüV</label>
+    <input type="number" id="r-verlust" step="1" value="0">
+    <label for="r-ngrenze">§ Beschränkung NitratRL (kg N max./ha)</label>
+    <input type="number" id="r-ngrenze" step="1" value="170">
+    <div class="calc" id="r-c-max"></div>
+    <div class="hint" id="r-c-aus"></div>
+
+    <button type="button" class="settings-toggle" id="r-settings-toggle">Einstellungen bearbeiten</button>
+    <div class="preset-editor" id="r-preset-editor"></div>
+  </div>
+</section>
+
+<section class="panel" id="panel-einst">
+  <div class="card">
+    <h2 style="margin-top:0">Fassungsvermögen</h2>
+    <label for="set-fass">Güllefass (m³)</label>
+    <input type="text" inputmode="decimal" id="set-fass" value="10,5">
+    <label for="set-streuer">Miststreuer (m³)</label>
+    <input type="text" inputmode="decimal" id="set-streuer" value="8">
+    <button class="primary" id="set-save">Speichern</button>
+  </div>
+</section>
+</div>
+
+<nav class="tabs"><div class="inner">
+  <button data-tab="flaechen" class="on"><svg viewBox="0 0 24 24"><path d="M3 20 L8 5 L16 5 L21 20 Z M6.5 15 h11 M8 10.5 h8"/></svg>Flächen</button>
+  <button data-tab="eintrag"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Eintrag</button>
+  <button data-tab="sammel"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><rect x="3" y="15" width="7" height="7" rx="1.5"/><path d="M14 18.5 l2.5 2.5 L21 16"/></svg>Sammel</button>
+  <button data-tab="uebersicht"><svg viewBox="0 0 24 24"><path d="M4 19 V10 M10 19 V5 M16 19 v-7 M22 19 H2"/></svg>Übersicht</button>
+  <button data-tab="rechner"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 13 L16 9 M12 5 v1.5 M5 13 h1.5 M18.5 13 H20"/></svg>Rechner</button>
+  <button data-tab="einst"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v3M12 18.2v3M2.8 12h3M18.2 12h3M5.5 5.5l2.1 2.1M16.4 16.4l2.1 2.1M18.5 5.5l-2.1 2.1M7.6 16.4l-2.1 2.1"/></svg>Mehr</button>
+</div></nav>
+
+<script>
+const LS={fl:"gd_flaechen",au:"gd_ausbringungen",set:"gd_settings"};
+const load=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d;}catch{return d;}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(err){}};
+let flaechen=load(LS.fl,[]);
+let eintraege=load(LS.au,[]);
+let settings=load(LS.set,{fassVolumen:10.5,streuerVolumen:8});
+const fassungFuer=material=>material==="mist"?settings.streuerVolumen:settings.fassVolumen;
+const $=s=>document.querySelector(s);
+const fmt=n=>Number(n).toLocaleString("de-DE",{maximumFractionDigits:2});
+const num=el=>{const v=parseFloat(String(el.value).replace(",","."));return isNaN(v)?0:v;};
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+let toastTimer=null;
+function notify(text){
+  const el=$("#toast");
+  el.textContent=text;
+  el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove("show"),3200);
+}
+
+document.querySelector("nav.tabs").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-tab]");if(!b)return;
+  document.querySelectorAll("nav.tabs button").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on");
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+  $("#panel-"+b.dataset.tab).classList.add("active");
+});
+
+function checkEinarbeitung(ausbringungIso,einarbIso){
+  if(!einarbIso)return null;
+  const a=new Date(ausbringungIso).getTime(),e=new Date(einarbIso).getTime();
+  if(e<a)return"Die Einarbeitung liegt vor der Ausbringung – bitte Datum und Uhrzeit nochmal überdenken.";
+  if(e-a>24*3600*1000)return"Die Einarbeitung liegt mehr als 24 Stunden nach der Ausbringung – bitte Datum und Uhrzeit nochmal überdenken.";
+  return null;
+}
+function segInit(id,onChange){
+  const seg=$(id);
+  seg.addEventListener("click",e=>{
+    const b=e.target.closest("button");if(!b)return;
+    seg.querySelectorAll("button").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on");
+    onChange && onChange(b.dataset.v);
+  });
+  return ()=>seg.querySelector("button.on").dataset.v;
+}
+
+const flKat=segInit("#fl-kat");
+let eEditId=null;
+function updateFassLabel(){
+  const isMist=eMat()==="mist";
+  $("#e-modus-fass-btn").textContent=isMist?"Fuhren":"Fässer";
+  $("#e-fass-label").textContent=isMist?"Anzahl Fuhren":"Anzahl Fässer";
+  $("#e-sep-wrap").style.display=isMist?"none":"block";
+}
+const eMat=segInit("#e-mat",v=>{updateFassLabel();eCalc();});
+const eSep=segInit("#e-sep");
+const eModus=segInit("#e-modus",v=>{
+  $("#e-fass-wrap").style.display=v==="fass"?"block":"none";
+  $("#e-m3-wrap").style.display=v==="m3"?"block":"none";
+  $("#e-proha-wrap").style.display=v==="proha"?"block":"none";
+});
+
+$("#fl-save").addEventListener("click",()=>{
+  const name=$("#fl-name").value.trim();
+  const ha=num($("#fl-ha"));
+  const feldstück=$("#fl-feldstuck").value.trim();
+  if(!name || ha<=0) {notify("Bitte Name und Größe eingeben");return;}
+  if(flEditId){
+    const f=flaechen.find(e=>e.id===flEditId);
+    f.name=name;
+    f.feldstückNummer=feldstück;
+    f.kategorie=flKat();
+    f.groesseHa=ha;
+  }else{
+    flaechen.push({id:uid(),name,feldstückNummer:feldstück,kategorie:flKat(),groesseHa:ha});
+  }
+  save(LS.fl,flaechen);
+  cancelFlEdit();
+  render();
+});
+
+$("#fl-cancel").addEventListener("click",cancelFlEdit);
+
+$("#fl-delete").addEventListener("click",()=>{
+  const hasEintraege=eintraege.some(e=>e.flaecheId===flEditId);
+  if(hasEintraege){notify("Diese Fläche hat Ausbringungseinträge und kann nicht gelöscht werden");return;}
+  showConfirm("Fläche wirklich löschen?",()=>{
+    flaechen=flaechen.filter(f=>f.id!==flEditId);
+    save(LS.fl,flaechen);
+    cancelFlEdit();
+    render();
+  });
+});
+
+$("#e-fass").addEventListener("input",eCalc);
+$("#e-proha").addEventListener("input",eCalc);
+$("#e-flaeche").addEventListener("change",()=>{
+  const fid=$("#e-flaeche").value;
+  const f=flaechen.find(x=>x.id===fid);
+  $("#e-einarb-wrap").style.display=(f&&f.kategorie==="acker")?"block":"none";
+  eCalc();
+});
+
+function eCalc(){
+  const modus=eModus();
+  if(modus==="fass"){
+    const n=num($("#e-fass"));
+    $("#e-calc").textContent=`= ${fmt(n*fassungFuer(eMat()))} m³`;
+  }else if(modus==="proha"){
+    const fid=$("#e-flaeche").value;
+    const f=flaechen.find(x=>x.id===fid);
+    const proha=num($("#e-proha"));
+    $("#e-calc-proha").textContent=`= ${fmt(proha*(f?.groesseHa||0))} m³`;
+  }
+}
+
+function cancelEdit(){
+  eEditId=null;
+  $("#e-flaeche").value="";$("#e-fass").value="";$("#e-m3").value="";$("#e-proha").value="";$("#e-einarb").value="";
+  $("#e-save").textContent="Eintrag speichern";
+  $("#e-cancel").style.display="none";
+  $("#e-delete").style.display="none";
+  document.querySelectorAll("#e-mat button").forEach(b=>b.classList.remove("on"));
+  $("#e-mat").querySelector('button[data-v="guelle"]').classList.add("on");
+  document.querySelectorAll("#e-sep button").forEach(b=>b.classList.remove("on"));
+  $("#e-sep").querySelector('button[data-v="nein"]').classList.add("on");
+  updateFassLabel();
+  eCalc();
+}
+
+$("#e-save").addEventListener("click",()=>{
+  const fid=$("#e-flaeche").value;
+  if(!fid){notify("Fläche wählen");return;}
+  const datum=$("#e-datum").value;
+  if(!datum){notify("Datum eingeben");return;}
+  let menge;
+  const modus=eModus();
+  if(modus==="fass"){
+    const n=num($("#e-fass"));
+    if(n<=0){notify("Anzahl eingeben");return;}
+    menge=n*fassungFuer(eMat());
+  }else if(modus==="m3"){
+    menge=num($("#e-m3"));
+    if(menge<=0){notify("Menge eingeben");return;}
+  }else if(modus==="proha"){
+    const f=flaechen.find(x=>x.id===fid);
+    const proha=num($("#e-proha"));
+    if(proha<=0){notify("Menge pro ha eingeben");return;}
+    menge=proha*f.groesseHa;
+  }
+  const f=flaechen.find(x=>x.id===fid);
+  let einarb=null;
+  if(f&&f.kategorie==="acker"&&$("#e-einarb").value){
+    einarb=$("#e-einarb").value;
+    const err=checkEinarbeitung(datum,einarb);
+    if(err){notify(err);return;}
+  }
+  const material=eMat();
+  const separiert=material==="guelle"?(eSep()==="ja"):null;
+  if(eEditId){
+    const entry=eintraege.find(e=>e.id===eEditId);
+    entry.flaecheId=fid;
+    entry.datumZeit=datum;
+    entry.material=material;
+    entry.separiert=separiert;
+    entry.mengeM3=Math.round(menge*100)/100;
+    entry.einarbeitungZeit=einarb;
+  }else{
+    eintraege.push({id:uid(),flaecheId:fid,datumZeit:datum,material,separiert,mengeM3:Math.round(menge*100)/100,einarbeitungZeit:einarb});
+  }
+  save(LS.au,eintraege);
+  cancelEdit();
+  render();
+});
+
+$("#e-cancel").addEventListener("click",cancelEdit);
+
+function showConfirm(text,onYes){
+  $("#confirm-text").textContent=text;
+  $("#confirm-overlay").classList.add("show");
+  const yes=$("#confirm-yes"),no=$("#confirm-no");
+  const cleanup=()=>{
+    $("#confirm-overlay").classList.remove("show");
+    yes.removeEventListener("click",onYesClick);
+    no.removeEventListener("click",onNoClick);
+  };
+  const onYesClick=()=>{cleanup();onYes();};
+  const onNoClick=()=>{cleanup();};
+  yes.addEventListener("click",onYesClick);
+  no.addEventListener("click",onNoClick);
+}
+
+$("#e-delete").addEventListener("click",()=>{
+  showConfirm("Eintrag wirklich löschen?",()=>{
+    eintraege=eintraege.filter(e=>e.id!==eEditId);
+    save(LS.au,eintraege);
+    cancelEdit();
+    render();
+  });
+});
+
+const sMat=segInit("#s-mat",v=>{$("#s-sep-wrap").style.display=v==="mist"?"none":"block";});
+const sSep=segInit("#s-sep");
+function renderSammelFlaechen(){
+  const box=$("#s-flaechen");
+  if(!flaechen.length){box.innerHTML="<p>Noch keine Flächen</p>";return;}
+  box.innerHTML="";
+  flaechen.forEach(f=>{
+    const div=document.createElement("div");
+    div.className="checkline";
+    div.innerHTML=`<input type="checkbox" id="s-f-${f.id}" data-fl="${f.id}"><label for="s-f-${f.id}" style="margin:0;text-transform:none;font-size:.95rem">${f.name} (${fmt(f.groesseHa)} ha)</label>`;
+    box.appendChild(div);
+    if(f.kategorie==="acker"){
+      const sub=document.createElement("div");
+      sub.className="subfield";
+      sub.id=`s-sub-${f.id}`;
+      sub.innerHTML=`<label for="s-e-${f.id}">Einarbeitung ${f.name} (optional)</label><input type="datetime-local" id="s-e-${f.id}">`;
+      box.appendChild(sub);
+    }
+  });
+  box.addEventListener("change",sUpdate);
+}
+function sUpdate(){
+  flaechen.forEach(f=>{
+    const sub=document.querySelector(`#s-sub-${f.id}`);
+    if(sub){
+      sub.style.display=document.querySelector(`#s-f-${f.id}`)?.checked?"block":"none";
+    }
+  });
+  const proHa=num($("#s-proha"));
+  const sel=flaechen.filter(f=>document.querySelector(`#s-f-${f.id}`)?.checked);
+  const calc=$("#s-calc");
+  if(sel.length && proHa>0){
+    const ha=sel.reduce((s,f)=>s+f.groesseHa,0);
+    calc.style.display="block";
+    calc.textContent=`${sel.length} Flächen · ${fmt(ha)} ha × ${fmt(proHa)} m³/ha = ${fmt(ha*proHa)} m³`;
+  }else calc.style.display="none";
+}
+$("#s-proha").addEventListener("input",sUpdate);
+$("#s-save").addEventListener("click",()=>{
+  const datum=$("#s-datum").value;
+  if(!datum){notify("Datum eingeben");return;}
+  const proHa=num($("#s-proha"));
+  if(proHa<=0){notify("Menge pro ha eingeben");return;}
+  const sel=flaechen.filter(f=>document.querySelector(`#s-f-${f.id}`)?.checked);
+  if(!sel.length){notify("Mindestens eine Fläche wählen");return;}
+  for(const f of sel){
+    if(f.kategorie==="acker"){
+      const inp=document.querySelector(`#s-e-${f.id}`);
+      if(inp&&inp.value){
+        const err=checkEinarbeitung(datum,inp.value);
+        if(err){notify(`${f.name}: ${err}`);return;}
+      }
+    }
+  }
+  const sMaterial=sMat();
+  const sSepariert=sMaterial==="guelle"?(sSep()==="ja"):null;
+  sel.forEach(f=>{
+    const inp=f.kategorie==="acker"?document.querySelector(`#s-e-${f.id}`):null;
+    eintraege.push({id:uid(),flaecheId:f.id,datumZeit:datum,material:sMaterial,separiert:sSepariert,mengeM3:Math.round(proHa*f.groesseHa*100)/100,einarbeitungZeit:inp&&inp.value?inp.value:null});
+  });
+  save(LS.au,eintraege);
+  notify(`${sel.length} Einträge gespeichert`);
+  $("#s-proha").value="";
+  flaechen.forEach(f=>{document.querySelector(`#s-f-${f.id}`).checked=false; const e=document.querySelector(`#s-e-${f.id}`); if(e)e.value="";});
+  sUpdate();
+  render();
+});
+
+$("#set-save").addEventListener("click",()=>{
+  const fassVolumen=num($("#set-fass"));
+  const streuerVolumen=num($("#set-streuer"));
+  if(fassVolumen<=0||streuerVolumen<=0){notify("Bitte gültige Werte eingeben");return;}
+  settings={fassVolumen,streuerVolumen};
+  save(LS.set,settings);
+  eCalc();
+});
+
+function fillSelects(){
+  const e=$("#e-flaeche");
+  const curE=e.value;
+  e.innerHTML='<option value="">– wählen –</option>';
+  flaechen.forEach(f=>{
+    const o=document.createElement("option");
+    o.value=f.id;
+    o.textContent=`${f.name} (${fmt(f.groesseHa)} ha)`;
+    e.appendChild(o);
+  });
+  if([...e.options].some(o=>o.value===curE))e.value=curE;
+
+  const u=$("#u-flaeche");
+  const curU=u.value;
+  u.innerHTML='<option value="">Alle</option><option value="kat:wiese">Wiese</option><option value="kat:acker">Acker</option>';
+  flaechen.forEach(f=>{
+    const o=document.createElement("option");
+    o.value=f.id;
+    o.textContent=`${f.name} (${fmt(f.groesseHa)} ha)`;
+    u.appendChild(o);
+  });
+  if([...u.options].some(o=>o.value===curU))u.value=curU;
+}
+
+function renderFlaechen(){
+  const box=$("#fl-list");
+  if(!flaechen.length){box.innerHTML="<p>Noch keine Flächen</p>";return;}
+  box.innerHTML="";
+  flaechen.forEach(f=>{
+    const div=document.createElement("div");
+    div.className="list-item";
+    const feldstuck=f.feldstückNummer?` · Feldstück ${f.feldstückNummer}`:"";
+    div.innerHTML=`<div class="grow"><div class="title">${f.name}</div><div class="meta">${fmt(f.groesseHa)} ha · ${f.kategorie}${feldstuck}</div></div><button class="small" onclick="editFlaeche('${f.id}')">✎</button>`;
+    box.appendChild(div);
+  });
+}
+
+let flEditId=null;
+function editFlaeche(id){
+  const f=flaechen.find(x=>x.id===id);
+  if(!f)return;
+  flEditId=id;
+  $("#fl-name").value=f.name;
+  $("#fl-feldstuck").value=f.feldstückNummer||"";
+  document.querySelectorAll("#fl-kat button").forEach(b=>b.classList.remove("on"));
+  $("#fl-kat").querySelector(`button[data-v="${f.kategorie}"]`).classList.add("on");
+  $("#fl-ha").value=f.groesseHa;
+  $("#fl-save").textContent="Fläche aktualisieren";
+  $("#fl-cancel").style.display="block";
+  $("#fl-delete").style.display="block";
+  document.querySelector("nav.tabs button[data-tab='flaechen']").click();
+  window.scrollTo({top:0});
+}
+
+function cancelFlEdit(){
+  flEditId=null;
+  $("#fl-name").value="";
+  $("#fl-feldstuck").value="";
+  $("#fl-ha").value="";
+  $("#fl-save").textContent="Fläche speichern";
+  $("#fl-cancel").style.display="none";
+  $("#fl-delete").style.display="none";
+  document.querySelectorAll("#fl-kat button").forEach(b=>b.classList.remove("on"));
+  $("#fl-kat").querySelector('button[data-v="acker"]').classList.add("on");
+}
+
+function fmtDT(iso){
+  if(!iso)return"–";
+  const d=new Date(iso);
+  return d.toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"})+" "+d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+}
+function editEintrag(id){
+  const entry=eintraege.find(e=>e.id===id);
+  if(!entry)return;
+  const f=flaechen.find(x=>x.id===entry.flaecheId);
+  eEditId=id;
+  $("#e-flaeche").value=entry.flaecheId;
+  $("#e-datum").value=entry.datumZeit;
+  document.querySelectorAll("#e-mat button").forEach(b=>b.classList.remove("on"));
+  $("#e-mat").querySelector(`button[data-v="${entry.material}"]`).classList.add("on");
+  document.querySelectorAll("#e-sep button").forEach(b=>b.classList.remove("on"));
+  $("#e-sep").querySelector(`button[data-v="${entry.separiert?"ja":"nein"}"]`).classList.add("on");
+  updateFassLabel();
+  if(f&&f.kategorie==="acker"){
+    $("#e-einarb-wrap").style.display="block";
+    $("#e-einarb").value=entry.einarbeitungZeit||"";
+  }else{
+    $("#e-einarb-wrap").style.display="none";
+  }
+  $("#e-m3-wrap").style.display="block";
+  $("#e-fass-wrap").style.display="none";
+  $("#e-proha-wrap").style.display="none";
+  document.querySelectorAll("#e-modus button").forEach(b=>b.classList.remove("on"));
+  $("#e-modus").querySelector('button[data-v="m3"]').classList.add("on");
+  $("#e-m3").value=entry.mengeM3;
+  $("#e-save").textContent="Eintrag aktualisieren";
+  $("#e-cancel").style.display="block";
+  $("#e-delete").style.display="block";
+  document.querySelector("nav.tabs button[data-tab='eintrag']").click();
+  window.scrollTo({top:0});
+}
+function fillJahrSelect(){
+  const sel=$("#u-jahr");
+  const cur=sel.value;
+  const years=[...new Set(eintraege.map(e=>new Date(e.datumZeit).getFullYear()))].sort((a,b)=>b-a);
+  sel.innerHTML='<option value="">Alle</option>'+years.map(y=>`<option value="${y}">${y}</option>`).join("");
+  if(years.some(y=>y.toString()===cur))sel.value=cur;
+}
+function sepLabel(e){
+  if(e.material!=="guelle"||e.separiert==null)return"–";
+  return e.separiert?"Ja":"Nein";
+}
+function currentUebersichtList(){
+  const fl=$("#u-flaeche").value;
+  const jahr=$("#u-jahr").value;
+  let list=eintraege;
+  if(fl.startsWith("kat:")){
+    const kat=fl.slice(4);
+    const idsInKat=new Set(flaechen.filter(f=>f.kategorie===kat).map(f=>f.id));
+    list=list.filter(e=>idsInKat.has(e.flaecheId));
+  }else if(fl){
+    list=list.filter(e=>e.flaecheId===fl);
+  }
+  if(jahr) list=list.filter(e=>new Date(e.datumZeit).getFullYear().toString()===jahr);
+  return list;
+}
+function renderUebersicht(){
+  const list=currentUebersichtList();
+  const tb=$("#u-tbody");
+  tb.innerHTML="";
+  list.forEach(e=>{
+    const f=flaechen.find(x=>x.id===e.flaecheId);
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${new Date(e.datumZeit).toLocaleDateString("de-DE")}</td><td>${f?.name||"–"}</td><td>${e.material}</td><td>${sepLabel(e)}</td><td class="num">${fmt(e.mengeM3)}</td><td>${fmtDT(e.einarbeitungZeit)}</td><td><button class="small" onclick="editEintrag('${e.id}')">✎</button></td>`;
+    tb.appendChild(tr);
+  });
+  const total=list.reduce((s,e)=>s+e.mengeM3,0);
+  $("#u-stats").innerHTML=`<div class="stat"><div class="v">${fmt(total)}</div><div class="l">m³ gesamt</div></div><div class="stat"><div class="v">${list.length}</div><div class="l">Einträge</div></div>`;
+}
+
+function xmlEsc(s){
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function exportFilterText(){
+  const fl=$("#u-flaeche").value;
+  const jahr=$("#u-jahr").value;
+  let flText="Alle Flächen";
+  if(fl==="kat:wiese")flText="Nur Wiesen";
+  else if(fl==="kat:acker")flText="Nur Äcker";
+  else if(fl){const f=flaechen.find(x=>x.id===fl);flText=f?`Fläche: ${f.name}`:flText;}
+  return `${flText} · ${jahr?`Jahr ${jahr}`:"Alle Jahre"}`;
+}
+function buildSheetRows(list,includeSep){
+  const str=(v,style)=>`<Cell ss:StyleID="${style}"><Data ss:Type="String">${xmlEsc(v)}</Data></Cell>`;
+  const numC=(v,style)=>`<Cell ss:StyleID="${style}"><Data ss:Type="Number">${v}</Data></Cell>`;
+  return list.map((e,i)=>{
+    const f=flaechen.find(x=>x.id===e.flaecheId);
+    const d=new Date(e.datumZeit);
+    const alt=i%2===1;
+    const cs=alt?"cellAlt":"cell";
+    const csC=alt?"cellAltC":"cellC";
+    const ns=alt?"numAlt":"num";
+    const cells=[
+      str(d.toLocaleDateString("de-DE"),csC),
+      str(d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}),csC),
+      str(f?.name||"",cs),
+      str(f?.kategorie==="acker"?"Acker":f?.kategorie==="wiese"?"Wiese":"",cs)
+    ];
+    if(includeSep) cells.push(str(sepLabel(e),csC));
+    cells.push(numC(e.mengeM3,ns));
+    cells.push(str(e.einarbeitungZeit?fmtDT(e.einarbeitungZeit):"–",cs));
+    return `<Row>${cells.join("")}</Row>`;
+  }).join("\n");
+}
+function buildWorksheetXml({name,list,includeSep,summaryRows,filterText}){
+  const headers=["Datum","Uhrzeit","Fläche","Kategorie"];
+  if(includeSep) headers.push("Separiert");
+  headers.push("Menge (m³)","Einarbeitung");
+  const lastCol=headers.length-1;
+  const heute=new Date();
+  const dataRows=list.length?buildSheetRows(list,includeSep):"";
+  const emptyRow=list.length?"":`<Row><Cell ss:StyleID="cell" ss:MergeAcross="${lastCol}"><Data ss:Type="String">Keine Einträge</Data></Cell></Row>`;
+  const summaryXml=summaryRows.map((s,i)=>{
+    const lblStyle=i===0?"totalLbl":"subTotalLbl";
+    const numStyle=i===0?"totalNum":"subTotalNum";
+    return `<Row ss:Height="22">
+  <Cell ss:StyleID="${lblStyle}" ss:MergeAcross="${lastCol-1}"><Data ss:Type="String">${xmlEsc(s.label)}</Data></Cell>
+  <Cell ss:StyleID="${numStyle}"><Data ss:Type="Number">${s.value}</Data></Cell>
+ </Row>`;
+  }).join("\n");
+  const cols=headers.map((h,i)=>{
+    const widths=includeSep?[70,52,120,70,60,75,115]:[70,52,120,70,80,115];
+    return `<Column ss:Width="${widths[i]}"/>`;
+  }).join("\n ");
+  return `<Worksheet ss:Name="${xmlEsc(name)}">
+<Table ss:DefaultRowHeight="17">
+ ${cols}
+ <Row ss:Height="24"><Cell ss:StyleID="title" ss:MergeAcross="${lastCol}"><Data ss:Type="String">Gülle &amp; Mist – ${xmlEsc(name)}-Ausbringungen</Data></Cell></Row>
+ <Row ss:Height="15"><Cell ss:StyleID="subtitle" ss:MergeAcross="${lastCol}"><Data ss:Type="String">${xmlEsc(filterText)} · ${list.length} Einträge · Exportiert am ${heute.toLocaleDateString("de-DE")} ${heute.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})}</Data></Cell></Row>
+ <Row ss:Height="8"/>
+ <Row ss:Height="22">${headers.map(h=>`<Cell ss:StyleID="hdr"><Data ss:Type="String">${xmlEsc(h)}</Data></Cell>`).join("")}</Row>
+${dataRows}${emptyRow}
+${summaryXml}
+</Table>
+<WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">
+ <FreezePanes/>
+ <FrozenNoSplit/>
+ <SplitHorizontal>4</SplitHorizontal>
+ <TopRowBottomPane>4</TopRowBottomPane>
+ <ActivePane>2</ActivePane>
+</WorksheetOptions>
+</Worksheet>`;
+}
+function exportExcel(){
+  const list=[...currentUebersichtList()].sort((a,b)=>new Date(a.datumZeit)-new Date(b.datumZeit));
+  const guelleList=list.filter(e=>e.material==="guelle");
+  const mistList=list.filter(e=>e.material==="mist");
+  if(!guelleList.length && !mistList.length){notify("Keine Einträge zum Exportieren");return;}
+  const guelleTotal=Math.round(guelleList.reduce((s,e)=>s+e.mengeM3,0)*100)/100;
+  const guelleSepTotal=Math.round(guelleList.filter(e=>e.separiert===true).reduce((s,e)=>s+e.mengeM3,0)*100)/100;
+  const mistTotal=Math.round(mistList.reduce((s,e)=>s+e.mengeM3,0)*100)/100;
+  const filterText=exportFilterText();
+  const guelleSheet=buildWorksheetXml({
+    name:"Gülle",list:guelleList,includeSep:true,filterText,
+    summaryRows:[{label:"Gesamt Gülle",value:guelleTotal},{label:"davon separiert",value:guelleSepTotal}]
+  });
+  const mistSheet=buildWorksheetXml({
+    name:"Mist",list:mistList,includeSep:false,filterText,
+    summaryRows:[{label:"Gesamt Mist",value:mistTotal}]
+  });
+  const xml=`<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+<Styles>
+ <Style ss:ID="Default" ss:Name="Normal">
+  <Font ss:FontName="Calibri" ss:Size="11" ss:Color="#26301F"/>
+  <Alignment ss:Vertical="Center"/>
+ </Style>
+ <Style ss:ID="title">
+  <Font ss:FontName="Calibri" ss:Size="16" ss:Bold="1" ss:Color="#3F6B2E"/>
+ </Style>
+ <Style ss:ID="subtitle">
+  <Font ss:FontName="Calibri" ss:Size="10" ss:Color="#5C6653"/>
+ </Style>
+ <Style ss:ID="hdr">
+  <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/>
+  <Interior ss:Color="#3F6B2E" ss:Pattern="Solid"/>
+  <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+  <Borders>
+   <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#2C4A20"/>
+   <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#557F42"/>
+  </Borders>
+ </Style>
+ <Style ss:ID="cell">
+  <Borders>
+   <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D8D5C8"/>
+   <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#EAE8DE"/>
+  </Borders>
+ </Style>
+ <Style ss:ID="cellC">
+  <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+  <Borders>
+   <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D8D5C8"/>
+   <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#EAE8DE"/>
+  </Borders>
+ </Style>
+ <Style ss:ID="cellAlt">
+  <Interior ss:Color="#F1F4EC" ss:Pattern="Solid"/>
+  <Borders>
+   <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D8D5C8"/>
+   <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E5DA"/>
+  </Borders>
+ </Style>
+ <Style ss:ID="cellAltC">
+  <Interior ss:Color="#F1F4EC" ss:Pattern="Solid"/>
+  <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+  <Borders>
+   <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D8D5C8"/>
+   <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E5DA"/>
+  </Borders>
+ </Style>
+ <Style ss:ID="num">
+  <NumberFormat ss:Format="#,##0.00"/>
+  <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
+  <Borders>
+   <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D8D5C8"/>
+   <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#EAE8DE"/>
+  </Borders>
+ </Style>
+ <Style ss:ID="numAlt">
+  <NumberFormat ss:Format="#,##0.00"/>
+  <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
+  <Interior ss:Color="#F1F4EC" ss:Pattern="Solid"/>
+  <Borders>
+   <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D8D5C8"/>
+   <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E5DA"/>
+  </Borders>
+ </Style>
+ <Style ss:ID="totalLbl">
+  <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1"/>
+  <Interior ss:Color="#E2ECD9" ss:Pattern="Solid"/>
+  <Borders>
+   <Border ss:Position="Top" ss:LineStyle="Double" ss:Weight="2" ss:Color="#3F6B2E"/>
+  </Borders>
+ </Style>
+ <Style ss:ID="totalNum">
+  <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1"/>
+  <NumberFormat ss:Format="#,##0.00 &quot;m³&quot;"/>
+  <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
+  <Interior ss:Color="#E2ECD9" ss:Pattern="Solid"/>
+  <Borders>
+   <Border ss:Position="Top" ss:LineStyle="Double" ss:Weight="2" ss:Color="#3F6B2E"/>
+  </Borders>
+ </Style>
+ <Style ss:ID="subTotalLbl">
+  <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#5C6653"/>
+  <Borders>
+   <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D8D5C8"/>
+  </Borders>
+ </Style>
+ <Style ss:ID="subTotalNum">
+  <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#5C6653"/>
+  <NumberFormat ss:Format="#,##0.00 &quot;m³&quot;"/>
+  <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
+  <Borders>
+   <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D8D5C8"/>
+  </Borders>
+ </Style>
+</Styles>
+${guelleSheet}
+${mistSheet}
+</Workbook>`;
+  const ts=new Date().toISOString().slice(0,10);
+  const filename=`Guelle-Mist-Ausbringungen_${ts}.xls`;
+  doExport(xml,filename,"application/vnd.ms-excel");
+}
+function doExport(content,filename,mime){
+  // Direkter Download (funktioniert lokal/als eigenständige Datei; in der
+  // Artifact-Sandbox blockiert die Plattform Downloads – dort greift das
+  // Kopier-Fenster darunter als offizieller Weg)
+  let downloaded=false;
+  try{
+    const blob=new Blob([content],{type:mime});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;
+    a.download=filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    downloaded=true;
+  }catch(err){}
+  const inSandbox=window!==window.top;
+  if(inSandbox||!downloaded){
+    showExportFallback(content,filename);
+  }else{
+    notify(`"${filename}" wird heruntergeladen`);
+  }
+}
+function showExportFallback(content,filename){
+  $("#export-text").textContent=`Datei "${filename}" wurde zum Download angeboten. Falls sich dein Browser nicht automatisch öffnet oder speichert: Text unten ist bereits markiert – mit Strg+C (Handy: gedrückt halten → Kopieren) kopieren, in einen Texteditor (z. B. Notizen/Editor) einfügen und als Datei mit der Endung ".xls" speichern. Excel öffnet die Datei dann direkt.`;
+  const ta=$("#export-text-area");
+  ta.value=content;
+  $("#export-overlay").classList.add("show");
+  ta.focus();
+  ta.select();
+}
+$("#export-close").addEventListener("click",()=>{
+  $("#export-overlay").classList.remove("show");
+});
+$("#export-copy").addEventListener("click",async()=>{
+  const ta=$("#export-text-area");
+  ta.focus();
+  ta.select();
+  try{
+    await navigator.clipboard.writeText(ta.value);
+    $("#export-copy").textContent="Kopiert ✓";
+    setTimeout(()=>{$("#export-copy").textContent="In Zwischenablage kopieren";},1500);
+  }catch(err){
+    document.execCommand("copy");
+  }
+});
+$("#u-export").addEventListener("click",exportExcel);
+$("#u-jahr").addEventListener("change",renderUebersicht);
+$("#u-flaeche").addEventListener("change",renderUebersicht);
+
+
+// ===== Rechner (Live-Ausbringmengen-Berechnung) =====
+const RLS={
+  pumpen:"gd_r_pumpen", fass:"gd_r_fass", breite:"gd_r_breite",
+  guelle:"gd_r_guelle", state:"gd_r_state"
+};
+const PRESET_DEFS={
+  pumpen:{ls:RLS.pumpen,label:"Pumpentyp",selId:"r-pumpe",fields:[
+    {k:"name",label:"Bezeichnung",type:"text"},
+    {k:"foerderLmin",label:"Fördermenge (L/min)",type:"number"},
+    {k:"refRpm",label:"bei U/min",type:"number"}
+  ],fmt:p=>`${fmt(p.foerderLmin)} L/min bei ${fmt(p.refRpm)} U/min`},
+  fass:{ls:RLS.fass,label:"Fassvolumen",selId:"r-fass",fields:[
+    {k:"name",label:"Bezeichnung",type:"text"},
+    {k:"liter",label:"Liter",type:"number"}
+  ],fmt:p=>`${fmt(p.liter)} L`},
+  breite:{ls:RLS.breite,label:"Verteilbreite",selId:"r-breite",fields:[
+    {k:"name",label:"Bezeichnung",type:"text"},
+    {k:"meter",label:"Meter",type:"number"}
+  ],fmt:p=>`${fmt(p.meter)} m`},
+  guelle:{ls:RLS.guelle,label:"Gülleart",selId:"r-guelle",fields:[
+    {k:"name",label:"Bezeichnung",type:"text"},
+    {k:"nGesamt",label:"N Gesamt (kg/m³)",type:"number"},
+    {k:"nh4n",label:"NH4-N (kg/m³)",type:"number"},
+    {k:"p2o5",label:"P2O5 (kg/m³)",type:"number"},
+    {k:"k2o",label:"K2O (kg/m³)",type:"number"}
+  ],fmt:p=>`N ${fmt(p.nGesamt)} · NH4-N ${fmt(p.nh4n)} · P2O5 ${fmt(p.p2o5)} · K2O ${fmt(p.k2o)} kg/m³`}
+};
+const DEFAULT_PRESETS={
+  pumpen:[
+    {id:"vx186",name:"VX 186-184 (Drehkolbenpumpe)",foerderLmin:2850,refRpm:400},
+    {id:"kreisel",name:"Standard Kreiselpumpe",foerderLmin:1500,refRpm:540}
+  ],
+  fass:[
+    {id:"f10500",name:"10.500 Liter",liter:10500},
+    {id:"f8000",name:"8.000 Liter",liter:8000},
+    {id:"f6000",name:"6.000 Liter",liter:6000}
+  ],
+  breite:[
+    {id:"b15",name:"15 Meter",meter:15},
+    {id:"b12",name:"12 Meter",meter:12},
+    {id:"b18",name:"18 Meter",meter:18}
+  ],
+  guelle:[
+    {id:"milch46",name:"Milchvieh 4,6% TS",nGesamt:2.5,nh4n:1.3,p2o5:1.0,k2o:3.3},
+    {id:"rind8",name:"Rindergülle 8% TS",nGesamt:3.7,nh4n:1.7,p2o5:1.5,k2o:5.5},
+    {id:"schwein",name:"Schweinegülle",nGesamt:4.2,nh4n:2.7,p2o5:2.0,k2o:2.8}
+  ]
+};
+function loadPresets(cat){return load(PRESET_DEFS[cat].ls,DEFAULT_PRESETS[cat]);}
+function savePresets(cat,arr){save(PRESET_DEFS[cat].ls,arr);}
+
+let rState=load(RLS.state,{
+  speed:5.0, rpm:400, gps:false,
+  sel:{pumpen:"vx186",fass:"f10500",breite:"b15",guelle:"milch46"},
+  verlust:0, ngrenze:170, kulturbedarf:{p:0,k:0}
+});
+function saveRState(){save(RLS.state,rState);}
+let rGpsWatchId=null;
+let rGpsLast=null;
+
+function fillPresetSelect(cat){
+  const def=PRESET_DEFS[cat];
+  const sel=$("#"+def.selId);
+  const items=loadPresets(cat);
+  const cur=rState.sel[cat];
+  sel.innerHTML="";
+  items.forEach(p=>{
+    const o=document.createElement("option");
+    o.value=p.id; o.textContent=`${p.name}`;
+    sel.appendChild(o);
+  });
+  if(items.some(p=>p.id===cur)) sel.value=cur;
+  else if(items.length){ sel.value=items[0].id; rState.sel[cat]=items[0].id; }
+}
+function fillAllPresetSelects(){
+  Object.keys(PRESET_DEFS).forEach(fillPresetSelect);
+}
+
+function haversineMeters(lat1,lon1,lat2,lon2){
+  const R=6371000, toRad=x=>x*Math.PI/180;
+  const dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
+  const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function computeRechner(){
+  const pumpe=loadPresets("pumpen").find(p=>p.id===rState.sel.pumpen);
+  const fass=loadPresets("fass").find(p=>p.id===rState.sel.fass);
+  const breite=loadPresets("breite").find(p=>p.id===rState.sel.breite);
+  const guelle=loadPresets("guelle").find(p=>p.id===rState.sel.guelle);
+  if(!pumpe||!fass||!breite||!guelle) return;
+
+  const v=Math.max(rState.speed,0.1);
+  const w=breite.meter;
+  const qLmin=pumpe.foerderLmin*(rState.rpm/pumpe.refRpm);
+  const qM3h=qLmin*60/1000;
+  const menge=10*qM3h/(v*w); // m³/ha
+  const reichweite=(fass.liter/1000)*10000/(menge*w); // m
+
+  const nGesamt=menge*guelle.nGesamt;
+  const nh4=menge*guelle.nh4n;
+  const p2o5=menge*guelle.p2o5;
+  const k2o=menge*guelle.k2o;
+
+  const verlustFrac=rState.verlust/100;
+  const effN=Math.max(guelle.nGesamt-guelle.nh4n*verlustFrac,0.0001);
+  const maxHaN=rState.ngrenze/effN;
+  const kb=rState.kulturbedarf;
+  const limits=[{label:"N Gesamt",max:maxHaN}];
+  if(kb.p>0) limits.push({label:"P2O5",max:kb.p/guelle.p2o5});
+  if(kb.k>0) limits.push({label:"K2O",max:kb.k/guelle.k2o});
+  const binding=limits.reduce((a,b)=>b.max<a.max?b:a);
+
+  $("#r-menge").textContent=fmt(menge);
+  $("#r-menge").classList.toggle("warn",menge>binding.max);
+  $("#r-menge-sub").innerHTML=`Max. ${fmt(binding.max)} m³/ha<br>${binding.label}`;
+  $("#r-menge-sub").classList.toggle("warn",menge>binding.max);
+  $("#r-speed").textContent=fmt(rState.speed);
+  $("#r-reich").textContent=fmt(reichweite);
+  $("#r-rpm").textContent=fmt(rState.rpm);
+  $("#r-n").textContent=Math.round(nGesamt);
+  $("#r-nh4").textContent=Math.round(nh4);
+  $("#r-p").textContent=Math.round(p2o5);
+  $("#r-k").textContent=Math.round(k2o);
+
+  $("#r-c-ngesamt").textContent=`${fmt(guelle.nGesamt)} kg N/m³`;
+  $("#r-c-grenze").textContent=`${fmt(rState.ngrenze)} kg N max./ha`;
+  $("#r-c-nh4").textContent=fmt(guelle.nh4n);
+  $("#r-c-p").textContent=fmt(guelle.p2o5);
+  $("#r-c-k").textContent=fmt(guelle.k2o);
+  $("#r-c-kb-nh4").textContent="0";
+  $("#r-c-kb-p").textContent=fmt(kb.p);
+  $("#r-c-kb-k").textContent=fmt(kb.k);
+  $("#r-c-max").textContent=`${fmt(binding.max)} m³/ha maximale Ausbringmenge`;
+  $("#r-c-aus").textContent=`Beschränkung aus: ${binding.label}`;
+
+  saveRState();
+}
+
+function rSetGps(on){
+  rState.gps=on;
+  $("#r-gps").textContent="GPS Modus "+(on?"Ein":"Aus");
+  $("#r-gps").classList.toggle("on",on);
+  $("#r-speed-minus").disabled=on;
+  $("#r-speed-plus").disabled=on;
+  if(on){
+    if(!("geolocation" in navigator)){
+      rGpsFail();
+      return;
+    }
+    rGpsLast=null;
+    rGpsWatchId=navigator.geolocation.watchPosition(pos=>{
+      $("#r-gps-hint").classList.remove("show");
+      if(typeof pos.coords.speed==="number" && pos.coords.speed>=0){
+        rState.speed=Math.round(pos.coords.speed*3.6*10)/10;
+      }else if(rGpsLast){
+        const dist=haversineMeters(rGpsLast.lat,rGpsLast.lon,pos.coords.latitude,pos.coords.longitude);
+        const dt=(pos.timestamp-rGpsLast.t)/1000;
+        if(dt>0) rState.speed=Math.round((dist/dt)*3.6*10)/10;
+      }
+      rGpsLast={lat:pos.coords.latitude,lon:pos.coords.longitude,t:pos.timestamp};
+      computeRechner();
+    },()=>{
+      rGpsFail();
+    },{enableHighAccuracy:true,maximumAge:1000});
+  }else{
+    if(rGpsWatchId!==null){ navigator.geolocation.clearWatch(rGpsWatchId); rGpsWatchId=null; }
+    $("#r-gps-hint").classList.remove("show");
+  }
+  saveRState();
+}
+function rGpsFail(){
+  rState.gps=false;
+  $("#r-gps").textContent="GPS Modus Aus";
+  $("#r-gps").classList.remove("on");
+  $("#r-speed-minus").disabled=false;
+  $("#r-speed-plus").disabled=false;
+  $("#r-gps-hint").classList.add("show");
+  if(rGpsWatchId!==null){ navigator.geolocation.clearWatch(rGpsWatchId); rGpsWatchId=null; }
+}
+
+$("#r-speed-minus").addEventListener("click",()=>{rState.speed=Math.max(Math.round((rState.speed-0.1)*10)/10,0);computeRechner();});
+$("#r-speed-plus").addEventListener("click",()=>{rState.speed=Math.round((rState.speed+0.1)*10)/10;computeRechner();});
+$("#r-rpm-minus").addEventListener("click",()=>{rState.rpm=Math.max(rState.rpm-10,0);computeRechner();});
+$("#r-rpm-plus").addEventListener("click",()=>{rState.rpm=rState.rpm+10;computeRechner();});
+$("#r-gps").addEventListener("click",()=>rSetGps(!rState.gps));
+$("#r-verlust").addEventListener("input",()=>{rState.verlust=num($("#r-verlust"));computeRechner();});
+$("#r-ngrenze").addEventListener("input",()=>{rState.ngrenze=num($("#r-ngrenze"));computeRechner();});
+
+Object.keys(PRESET_DEFS).forEach(cat=>{
+  $("#"+PRESET_DEFS[cat].selId).addEventListener("change",e=>{
+    rState.sel[cat]=e.target.value;
+    computeRechner();
+  });
+});
+
+const RBEISPIELE=[
+  {id:"standard",label:"Standard Pumpfass (Vogelsang VX 186-184)",
+   sel:{pumpen:"vx186",fass:"f10500",breite:"b15",guelle:"milch46"},speed:5.0,rpm:400,verlust:0,ngrenze:170}
+];
+function fillBeispiele(){
+  const sel=$("#r-beispiel");
+  sel.innerHTML='<option value="">– wählen –</option>';
+  RBEISPIELE.forEach(b=>{
+    const o=document.createElement("option");
+    o.value=b.id; o.textContent=b.label;
+    sel.appendChild(o);
+  });
+}
+$("#r-beispiel").addEventListener("change",()=>{
+  const id=$("#r-beispiel").value;
+  const b=RBEISPIELE.find(x=>x.id===id);
+  if(!b)return;
+  rState.sel={...b.sel};
+  rState.speed=b.speed; rState.rpm=b.rpm; rState.verlust=b.verlust; rState.ngrenze=b.ngrenze;
+  $("#r-verlust").value=b.verlust;
+  $("#r-ngrenze").value=b.ngrenze;
+  fillAllPresetSelects();
+  computeRechner();
+});
+
+$("#r-settings-toggle").addEventListener("click",()=>{
+  $("#r-preset-editor").classList.toggle("show");
+  renderPresetEditor();
+});
+function renderPresetEditor(){
+  const box=$("#r-preset-editor");
+  box.innerHTML="";
+  Object.keys(PRESET_DEFS).forEach(cat=>{
+    const def=PRESET_DEFS[cat];
+    const items=loadPresets(cat);
+    const wrap=document.createElement("div");
+    wrap.className="preset-cat";
+    const h=document.createElement("h3");
+    h.textContent=def.label;
+    wrap.appendChild(h);
+    items.forEach(p=>{
+      const row=document.createElement("div");
+      row.className="preset-item";
+      row.innerHTML=`<div class="grow"><div>${p.name}</div><div class="meta">${def.fmt(p)}</div></div>`;
+      const delBtn=document.createElement("button");
+      delBtn.className="small danger"; delBtn.type="button"; delBtn.textContent="Löschen";
+      delBtn.addEventListener("click",()=>{
+        showConfirm(`"${p.name}" wirklich löschen?`,()=>{
+          const arr=loadPresets(cat).filter(x=>x.id!==p.id);
+          savePresets(cat,arr);
+          fillPresetSelect(cat);
+          renderPresetEditor();
+          computeRechner();
+        });
+      });
+      row.appendChild(delBtn);
+      wrap.appendChild(row);
+    });
+    const addWrap=document.createElement("div");
+    addWrap.className="preset-add";
+    const inputs={};
+    def.fields.forEach(f=>{
+      const inp=document.createElement("input");
+      inp.type=f.type; inp.placeholder=f.label; if(f.type==="number")inp.step="any";
+      inputs[f.k]=inp;
+      addWrap.appendChild(inp);
+    });
+    const addBtn=document.createElement("button");
+    addBtn.type="button"; addBtn.className="small"; addBtn.textContent="Hinzufügen";
+    addBtn.addEventListener("click",()=>{
+      const name=inputs.name.value.trim();
+      if(!name){notify("Bitte Bezeichnung eingeben");return;}
+      const obj={id:uid(),name};
+      def.fields.forEach(f=>{if(f.k!=="name")obj[f.k]=num(inputs[f.k]);});
+      const arr=loadPresets(cat); arr.push(obj); savePresets(cat,arr);
+      fillPresetSelect(cat);
+      renderPresetEditor();
+    });
+    addWrap.appendChild(addBtn);
+    wrap.appendChild(addWrap);
+    box.appendChild(wrap);
+  });
+}
+
+function initRechner(){
+  fillBeispiele();
+  fillAllPresetSelects();
+  $("#r-verlust").value=rState.verlust;
+  $("#r-ngrenze").value=rState.ngrenze;
+  rSetGps(false);
+  computeRechner();
+}
+
+function render(){
+  renderFlaechen();
+  fillSelects();
+  fillJahrSelect();
+  renderSammelFlaechen();
+  renderUebersicht();
+  eCalc();
+}
+
+const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());
+const dIso=d.toISOString().slice(0,16);
+$("#e-datum").value=dIso;
+$("#s-datum").value=dIso;
+$("#set-fass").value=settings.fassVolumen;
+$("#set-streuer").value=settings.streuerVolumen;
+updateFassLabel();
+
+render();
+initRechner();
+
+if(navigator.storage && navigator.storage.persist) navigator.storage.persist();
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+</script>
+</body>
+</html>

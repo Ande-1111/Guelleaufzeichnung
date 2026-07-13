@@ -1,0 +1,15 @@
+{
+  "name": "Gülle & Mist Dokumentation",
+  "short_name": "Gülle & Mist",
+  "description": "Ausbringungs-Dokumentation für Gülle und Mist",
+  "start_url": "guelle-app.html",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#f4f3ee",
+  "theme_color": "#3f6b2e",
+  "icons": [
+    { "src": "icon.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
