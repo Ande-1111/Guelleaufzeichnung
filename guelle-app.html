@@ -888,67 +888,207 @@ function exportFilterText(){
   else if(fl){const f=flaechen.find(x=>x.id===fl);flText=f?`Fläche: ${f.name}`:flText;}
   return `${flText} · ${jahr?`Jahr ${jahr}`:"Alle Jahre"}`;
 }
-function buildSheetRows(list,includeSep){
-  const str=(v,style)=>`<Cell ss:StyleID="${style}"><Data ss:Type="String">${xmlEsc(v)}</Data></Cell>`;
-  const numC=(v,style)=>`<Cell ss:StyleID="${style}"><Data ss:Type="Number">${v}</Data></Cell>`;
-  return list.map((e,i)=>{
-    const f=flaechen.find(x=>x.id===e.flaecheId);
-    const d=new Date(e.datumZeit);
-    const alt=i%2===1;
-    const cs=alt?"cellAlt":"cell";
-    const csC=alt?"cellAltC":"cellC";
-    const ns=alt?"numAlt":"num";
-    const cells=[
-      str(d.toLocaleDateString("de-DE"),csC),
-      str(d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}),csC),
-      str(f?.name||"",cs),
-      str(f?.kategorie==="acker"?"Acker":f?.kategorie==="wiese"?"Wiese":"",cs)
-    ];
-    if(includeSep) cells.push(str(sepLabel(e),csC));
-    cells.push(numC(e.mengeM3,ns));
-    cells.push(str(e.einarbeitungZeit?fmtDT(e.einarbeitungZeit):"–",cs));
-    return `<Row>${cells.join("")}</Row>`;
-  }).join("\n");
+// ===== Minimaler ZIP-Writer (store, unkomprimiert) für echte .xlsx-Dateien =====
+const CRC_TABLE=(()=>{
+  const t=[];
+  for(let n=0;n<256;n++){
+    let c=n;
+    for(let k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);
+    t[n]=c>>>0;
+  }
+  return t;
+})();
+function crc32(bytes){
+  let crc=0xFFFFFFFF;
+  for(let i=0;i<bytes.length;i++) crc=(crc>>>8)^CRC_TABLE[(crc^bytes[i])&0xFF];
+  return (crc^0xFFFFFFFF)>>>0;
 }
-function buildWorksheetXml({name,list,includeSep,summaryRows,filterText}){
+function zipStore(files){
+  const enc=new TextEncoder();
+  const localParts=[],centralParts=[];
+  let offset=0;
+  files.forEach(f=>{
+    const nameBytes=enc.encode(f.name);
+    const data=typeof f.data==="string"?enc.encode(f.data):f.data;
+    const crc=crc32(data);
+    const size=data.length;
+    const lh=new Uint8Array(30);
+    const lv=new DataView(lh.buffer);
+    lv.setUint32(0,0x04034b50,true);
+    lv.setUint16(4,20,true);
+    lv.setUint16(6,0,true);
+    lv.setUint16(8,0,true);
+    lv.setUint16(10,0,true);
+    lv.setUint16(12,0x21,true);
+    lv.setUint32(14,crc,true);
+    lv.setUint32(18,size,true);
+    lv.setUint32(22,size,true);
+    lv.setUint16(26,nameBytes.length,true);
+    lv.setUint16(28,0,true);
+    localParts.push(lh,nameBytes,data);
+    const ch=new Uint8Array(46);
+    const cv=new DataView(ch.buffer);
+    cv.setUint32(0,0x02014b50,true);
+    cv.setUint16(4,20,true);
+    cv.setUint16(6,20,true);
+    cv.setUint16(8,0,true);
+    cv.setUint16(10,0,true);
+    cv.setUint16(12,0,true);
+    cv.setUint16(14,0x21,true);
+    cv.setUint32(16,crc,true);
+    cv.setUint32(20,size,true);
+    cv.setUint32(24,size,true);
+    cv.setUint16(28,nameBytes.length,true);
+    cv.setUint16(30,0,true);
+    cv.setUint16(32,0,true);
+    cv.setUint16(34,0,true);
+    cv.setUint16(36,0,true);
+    cv.setUint32(38,0,true);
+    cv.setUint32(42,offset,true);
+    centralParts.push(ch,nameBytes);
+    offset+=lh.length+nameBytes.length+data.length;
+  });
+  const centralStart=offset;
+  let centralSize=0;
+  for(let i=0;i<centralParts.length;i++) centralSize+=centralParts[i].length;
+  const eocd=new Uint8Array(22);
+  const ev=new DataView(eocd.buffer);
+  ev.setUint32(0,0x06054b50,true);
+  ev.setUint16(4,0,true);
+  ev.setUint16(6,0,true);
+  ev.setUint16(8,files.length,true);
+  ev.setUint16(10,files.length,true);
+  ev.setUint32(12,centralSize,true);
+  ev.setUint32(16,centralStart,true);
+  ev.setUint16(20,0,true);
+  return new Blob([...localParts,...centralParts,eocd],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+}
+
+// ===== .xlsx-Zellhelfer =====
+function colLetter(idx){
+  let n=idx+1,s="";
+  while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26); }
+  return s;
+}
+function cellRef(colIdx,rowNum){ return colLetter(colIdx)+rowNum; }
+function xCellText(colIdx,rowNum,text,style){
+  const s=style?` s="${style}"`:"";
+  return `<c r="${cellRef(colIdx,rowNum)}" t="inlineStr"${s}><is><t xml:space="preserve">${xmlEsc(text)}</t></is></c>`;
+}
+function xCellNum(colIdx,rowNum,value,style){
+  const s=style?` s="${style}"`:"";
+  return `<c r="${cellRef(colIdx,rowNum)}"${s}><v>${value}</v></c>`;
+}
+
+function buildXlsxSheet({name,list,includeSep,summaryRows,filterText}){
   const headers=["Datum","Uhrzeit","Fläche","Kategorie"];
   if(includeSep) headers.push("Separiert");
   headers.push("Menge (m³)","Einarbeitung");
+  const mengeCol=headers.length-2;
   const lastCol=headers.length-1;
   const heute=new Date();
-  const dataRows=list.length?buildSheetRows(list,includeSep):"";
-  const emptyRow=list.length?"":`<Row><Cell ss:StyleID="cell" ss:MergeAcross="${lastCol}"><Data ss:Type="String">Keine Einträge</Data></Cell></Row>`;
-  const summaryXml=summaryRows.map((s,i)=>{
-    const lblStyle=i===0?"totalLbl":"subTotalLbl";
-    const numStyle=i===0?"totalNum":"subTotalNum";
-    return `<Row ss:Height="22">
-  <Cell ss:StyleID="${lblStyle}" ss:MergeAcross="${lastCol-1}"><Data ss:Type="String">${xmlEsc(s.label)}</Data></Cell>
-  <Cell ss:StyleID="${numStyle}"><Data ss:Type="Number">${s.value}</Data></Cell>
- </Row>`;
-  }).join("\n");
-  const cols=headers.map((h,i)=>{
-    const widths=includeSep?[70,52,120,70,60,75,115]:[70,52,120,70,80,115];
-    return `<Column ss:Width="${widths[i]}"/>`;
-  }).join("\n ");
-  return `<Worksheet ss:Name="${xmlEsc(name)}">
-<Table ss:DefaultRowHeight="17">
- ${cols}
- <Row ss:Height="24"><Cell ss:StyleID="title" ss:MergeAcross="${lastCol}"><Data ss:Type="String">Gülle &amp; Mist – ${xmlEsc(name)}-Ausbringungen</Data></Cell></Row>
- <Row ss:Height="15"><Cell ss:StyleID="subtitle" ss:MergeAcross="${lastCol}"><Data ss:Type="String">${xmlEsc(filterText)} · ${list.length} Einträge · Exportiert am ${heute.toLocaleDateString("de-DE")} ${heute.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})}</Data></Cell></Row>
- <Row ss:Height="8"/>
- <Row ss:Height="22">${headers.map(h=>`<Cell ss:StyleID="hdr"><Data ss:Type="String">${xmlEsc(h)}</Data></Cell>`).join("")}</Row>
-${dataRows}${emptyRow}
-${summaryXml}
-</Table>
-<WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">
- <FreezePanes/>
- <FrozenNoSplit/>
- <SplitHorizontal>4</SplitHorizontal>
- <TopRowBottomPane>4</TopRowBottomPane>
- <ActivePane>2</ActivePane>
-</WorksheetOptions>
-</Worksheet>`;
+  const rows=[];
+  let r=1;
+  rows.push(`<row r="${r}">${xCellText(0,r,`Gülle & Mist – ${name}-Ausbringungen`,"5")}</row>`); r++;
+  rows.push(`<row r="${r}">${xCellText(0,r,`${filterText} · ${list.length} Einträge · Exportiert am ${heute.toLocaleDateString("de-DE")} ${heute.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})}`,"6")}</row>`); r++;
+  r++; // Leerzeile
+  const headerRow=headers.map((h,ci)=>xCellText(ci,r,h,"2")).join("");
+  rows.push(`<row r="${r}">${headerRow}</row>`); r++;
+  const firstDataRow=r;
+  if(!list.length){
+    rows.push(`<row r="${r}">${xCellText(0,r,"Keine Einträge")}</row>`); r++;
+  }else{
+    list.forEach(e=>{
+      const f=flaechen.find(x=>x.id===e.flaecheId);
+      const d=new Date(e.datumZeit);
+      let ci=0;
+      const cells=[];
+      cells.push(xCellText(ci++,r,d.toLocaleDateString("de-DE")));
+      cells.push(xCellText(ci++,r,d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})));
+      cells.push(xCellText(ci++,r,f?.name||""));
+      cells.push(xCellText(ci++,r,f?.kategorie==="acker"?"Acker":f?.kategorie==="wiese"?"Wiese":""));
+      if(includeSep) cells.push(xCellText(ci++,r,sepLabel(e)));
+      cells.push(xCellNum(ci++,r,e.mengeM3,"1"));
+      cells.push(xCellText(ci++,r,e.einarbeitungZeit?fmtDT(e.einarbeitungZeit):"–"));
+      rows.push(`<row r="${r}">${cells.join("")}</row>`);
+      r++;
+    });
+  }
+  const merges=[`A1:${colLetter(lastCol)}1`,`A2:${colLetter(lastCol)}2`];
+  summaryRows.forEach(s=>{
+    const cells=[xCellText(0,r,s.label,"4"),xCellNum(mengeCol,r,s.value,"3")];
+    rows.push(`<row r="${r}">${cells.join("")}</row>`);
+    if(mengeCol>1) merges.push(`A${r}:${colLetter(mengeCol-1)}${r}`);
+    r++;
+  });
+  const mergeXml=merges.length?`<mergeCells count="${merges.length}">${merges.map(m=>`<mergeCell ref="${m}"/>`).join("")}</mergeCells>`:"";
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${rows.join("")}</sheetData>${mergeXml}</worksheet>`;
 }
+
+function buildXlsxBlob(sheets){
+  const stylesXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<numFmts count="1"><numFmt numFmtId="164" formatCode="#,##0.00"/></numFmts>
+<fonts count="5">
+<font><sz val="11"/><name val="Calibri"/></font>
+<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>
+<font><b/><sz val="11"/><color rgb="FF5C6653"/><name val="Calibri"/></font>
+<font><b/><sz val="16"/><color rgb="FF3F6B2E"/><name val="Calibri"/></font>
+<font><sz val="10"/><color rgb="FF5C6653"/><name val="Calibri"/></font>
+</fonts>
+<fills count="4">
+<fill><patternFill patternType="none"/></fill>
+<fill><patternFill patternType="gray125"/></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FF3F6B2E"/><bgColor indexed="64"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFE2ECD9"/><bgColor indexed="64"/></patternFill></fill>
+</fills>
+<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="7">
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>
+<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/>
+<xf numFmtId="164" fontId="2" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1" applyNumberFormat="1"/>
+<xf numFmtId="0" fontId="2" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1"/>
+<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+<xf numFmtId="0" fontId="4" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+</cellXfs>
+</styleSheet>`;
+  const contentTypes=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+${sheets.map((s,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("\n")}
+<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+</Types>`;
+  const rootRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>`;
+  const workbookRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+${sheets.map((s,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join("\n")}
+<Relationship Id="rId${sheets.length+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>`;
+  const workbookXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheets>
+${sheets.map((s,i)=>`<sheet name="${xmlEsc(s.name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join("\n")}
+</sheets>
+</workbook>`;
+  const files=[
+    {name:"[Content_Types].xml",data:contentTypes},
+    {name:"_rels/.rels",data:rootRels},
+    {name:"xl/workbook.xml",data:workbookXml},
+    {name:"xl/_rels/workbook.xml.rels",data:workbookRels},
+    {name:"xl/styles.xml",data:stylesXml}
+  ];
+  sheets.forEach((s,i)=>files.push({name:`xl/worksheets/sheet${i+1}.xml`,data:s.xml}));
+  return zipStore(files);
+}
+
 function exportExcel(){
   const list=[...currentUebersichtList()].sort((a,b)=>new Date(a.datumZeit)-new Date(b.datumZeit));
   const guelleList=list.filter(e=>e.material==="guelle");
@@ -958,130 +1098,24 @@ function exportExcel(){
   const guelleSepTotal=Math.round(guelleList.filter(e=>e.separiert===true).reduce((s,e)=>s+e.mengeM3,0)*100)/100;
   const mistTotal=Math.round(mistList.reduce((s,e)=>s+e.mengeM3,0)*100)/100;
   const filterText=exportFilterText();
-  const guelleSheet=buildWorksheetXml({
+  const guelleXml=buildXlsxSheet({
     name:"Gülle",list:guelleList,includeSep:true,filterText,
     summaryRows:[{label:"Gesamt Gülle",value:guelleTotal},{label:"davon separiert",value:guelleSepTotal}]
   });
-  const mistSheet=buildWorksheetXml({
+  const mistXml=buildXlsxSheet({
     name:"Mist",list:mistList,includeSep:false,filterText,
     summaryRows:[{label:"Gesamt Mist",value:mistTotal}]
   });
-  const xml=`<?xml version="1.0"?>
-<?mso-application progid="Excel.Sheet"?>
-<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
- xmlns:o="urn:schemas-microsoft-com:office:office"
- xmlns:x="urn:schemas-microsoft-com:office:excel"
- xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
-<Styles>
- <Style ss:ID="Default" ss:Name="Normal">
-  <Font ss:FontName="Calibri" ss:Size="11" ss:Color="#26301F"/>
-  <Alignment ss:Vertical="Center"/>
- </Style>
- <Style ss:ID="title">
-  <Font ss:FontName="Calibri" ss:Size="16" ss:Bold="1" ss:Color="#3F6B2E"/>
- </Style>
- <Style ss:ID="subtitle">
-  <Font ss:FontName="Calibri" ss:Size="10" ss:Color="#5C6653"/>
- </Style>
- <Style ss:ID="hdr">
-  <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/>
-  <Interior ss:Color="#3F6B2E" ss:Pattern="Solid"/>
-  <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
-  <Borders>
-   <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#2C4A20"/>
-   <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#557F42"/>
-  </Borders>
- </Style>
- <Style ss:ID="cell">
-  <Borders>
-   <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D8D5C8"/>
-   <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#EAE8DE"/>
-  </Borders>
- </Style>
- <Style ss:ID="cellC">
-  <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
-  <Borders>
-   <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D8D5C8"/>
-   <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#EAE8DE"/>
-  </Borders>
- </Style>
- <Style ss:ID="cellAlt">
-  <Interior ss:Color="#F1F4EC" ss:Pattern="Solid"/>
-  <Borders>
-   <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D8D5C8"/>
-   <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E5DA"/>
-  </Borders>
- </Style>
- <Style ss:ID="cellAltC">
-  <Interior ss:Color="#F1F4EC" ss:Pattern="Solid"/>
-  <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
-  <Borders>
-   <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D8D5C8"/>
-   <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E5DA"/>
-  </Borders>
- </Style>
- <Style ss:ID="num">
-  <NumberFormat ss:Format="#,##0.00"/>
-  <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
-  <Borders>
-   <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D8D5C8"/>
-   <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#EAE8DE"/>
-  </Borders>
- </Style>
- <Style ss:ID="numAlt">
-  <NumberFormat ss:Format="#,##0.00"/>
-  <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
-  <Interior ss:Color="#F1F4EC" ss:Pattern="Solid"/>
-  <Borders>
-   <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D8D5C8"/>
-   <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E5DA"/>
-  </Borders>
- </Style>
- <Style ss:ID="totalLbl">
-  <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1"/>
-  <Interior ss:Color="#E2ECD9" ss:Pattern="Solid"/>
-  <Borders>
-   <Border ss:Position="Top" ss:LineStyle="Double" ss:Weight="2" ss:Color="#3F6B2E"/>
-  </Borders>
- </Style>
- <Style ss:ID="totalNum">
-  <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1"/>
-  <NumberFormat ss:Format="#,##0.00 &quot;m³&quot;"/>
-  <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
-  <Interior ss:Color="#E2ECD9" ss:Pattern="Solid"/>
-  <Borders>
-   <Border ss:Position="Top" ss:LineStyle="Double" ss:Weight="2" ss:Color="#3F6B2E"/>
-  </Borders>
- </Style>
- <Style ss:ID="subTotalLbl">
-  <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#5C6653"/>
-  <Borders>
-   <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D8D5C8"/>
-  </Borders>
- </Style>
- <Style ss:ID="subTotalNum">
-  <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#5C6653"/>
-  <NumberFormat ss:Format="#,##0.00 &quot;m³&quot;"/>
-  <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
-  <Borders>
-   <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D8D5C8"/>
-  </Borders>
- </Style>
-</Styles>
-${guelleSheet}
-${mistSheet}
-</Workbook>`;
+  const blob=buildXlsxBlob([{name:"Gülle",xml:guelleXml},{name:"Mist",xml:mistXml}]);
   const ts=new Date().toISOString().slice(0,10);
-  const filename=`Guelle-Mist-Ausbringungen_${ts}.xls`;
-  doExport(xml,filename,"application/vnd.ms-excel");
+  const filename=`Guelle-Mist-Ausbringungen_${ts}.xlsx`;
+  doExport(blob,filename);
 }
-function doExport(content,filename,mime){
+function doExport(blob,filename){
   // Direkter Download (funktioniert lokal/als eigenständige Datei; in der
-  // Artifact-Sandbox blockiert die Plattform Downloads – dort greift das
-  // Kopier-Fenster darunter als offizieller Weg)
+  // Artifact-Sandbox blockiert die Plattform Downloads)
   let downloaded=false;
   try{
-    const blob=new Blob([content],{type:mime});
     const url=URL.createObjectURL(blob);
     const a=document.createElement("a");
     a.href=url;
@@ -1094,18 +1128,10 @@ function doExport(content,filename,mime){
   }catch(err){}
   const inSandbox=window!==window.top;
   if(inSandbox||!downloaded){
-    showExportFallback(content,filename);
+    notify(`Download nicht möglich in dieser Ansicht. Bitte die App über die installierte Version (Homescreen-Icon) öffnen und erneut exportieren.`);
   }else{
     notify(`"${filename}" wird heruntergeladen`);
   }
-}
-function showExportFallback(content,filename){
-  $("#export-text").textContent=`Datei "${filename}" wurde zum Download angeboten. Falls sich dein Browser nicht automatisch öffnet oder speichert: Text unten ist bereits markiert – mit Strg+C (Handy: gedrückt halten → Kopieren) kopieren, in einen Texteditor (z. B. Notizen/Editor) einfügen und als Datei mit der Endung ".xls" speichern. Excel öffnet die Datei dann direkt.`;
-  const ta=$("#export-text-area");
-  ta.value=content;
-  $("#export-overlay").classList.add("show");
-  ta.focus();
-  ta.select();
 }
 $("#export-close").addEventListener("click",()=>{
   $("#export-overlay").classList.remove("show");
