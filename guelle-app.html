@@ -239,6 +239,11 @@ nav.tabs button.on{color:var(--accent);background:var(--accent-soft);font-weight
     <input type="text" id="fl-name" placeholder="z. B. Hausacker">
     <label for="fl-feldstuck">Feldstücknummer (optional)</label>
     <input type="text" id="fl-feldstuck" placeholder="z. B. 42">
+    <label for="fl-schlag">Schlagnummer (optional)</label>
+    <input type="text" id="fl-schlag" placeholder="z. B. 1">
+    <label for="fl-kultur">Kultur</label>
+    <select id="fl-kultur"></select>
+    <div class="hint">Kulturen können unter „Mehr" angelegt und bearbeitet werden.</div>
     <div class="row">
       <div>
         <label>Kategorie</label>
@@ -280,6 +285,17 @@ nav.tabs button.on{color:var(--accent);background:var(--accent-soft);font-weight
         <button type="button" data-v="ja">Ja</button>
       </div>
     </div>
+    <label for="e-kultur">Kultur</label>
+    <select id="e-kultur"></select>
+    <label for="e-duenger" id="e-duenger-label">Gülleart</label>
+    <select id="e-duenger"></select>
+    <div id="e-verfahren-wrap">
+      <label>Ausbringverfahren</label>
+      <div class="seg" id="e-verfahren">
+        <button type="button" data-v="Schleppschuh" class="on">Schleppschuh</button>
+        <button type="button" data-v="Schleppschlauch">Schleppschlauch</button>
+      </div>
+    </div>
     <label>Menge</label>
     <div class="seg" id="e-modus">
       <button type="button" data-v="fass" class="on" id="e-modus-fass-btn">Fässer</button>
@@ -303,7 +319,11 @@ nav.tabs button.on{color:var(--accent);background:var(--accent-soft);font-weight
     <div id="e-einarb-wrap" style="display:none">
       <label for="e-einarb">Einarbeitung (Datum &amp; Uhrzeit)</label>
       <input type="datetime-local" id="e-einarb">
-      <div class="hint">Muss innerhalb von 24 Stunden nach der Ausbringung erfolgen.</div>
+      <div class="hint">Sollte innerhalb von 4 Stunden nach der Ausbringung erfolgen, sonst ist eine Begründung nötig.</div>
+      <div id="e-grund-wrap" style="display:none">
+        <label for="e-grund">Begründung verspätete Einarbeitung</label>
+        <input type="text" id="e-grund" placeholder="z. B. schlechte Witterung">
+      </div>
     </div>
     <div class="err" id="e-err"></div>
     <button class="primary" id="e-save">Eintrag speichern</button>
@@ -328,6 +348,15 @@ nav.tabs button.on{color:var(--accent);background:var(--accent-soft);font-weight
       <div class="seg" id="s-sep">
         <button type="button" data-v="nein" class="on">Nein</button>
         <button type="button" data-v="ja">Ja</button>
+      </div>
+    </div>
+    <label for="s-duenger" id="s-duenger-label">Gülleart</label>
+    <select id="s-duenger"></select>
+    <div id="s-verfahren-wrap">
+      <label>Ausbringverfahren</label>
+      <div class="seg" id="s-verfahren">
+        <button type="button" data-v="Schleppschuh" class="on">Schleppschuh</button>
+        <button type="button" data-v="Schleppschlauch">Schleppschlauch</button>
       </div>
     </div>
     <label for="s-proha">Menge pro ha (m³/ha)</label>
@@ -438,6 +467,11 @@ nav.tabs button.on{color:var(--accent);background:var(--accent-soft);font-weight
 
 <section class="panel" id="panel-einst">
   <div class="card">
+    <h2 style="margin-top:0">Kulturen &amp; Düngerarten</h2>
+    <p class="hint" style="margin-top:0">Kulturen können den Flächen zugewiesen werden; Gülle- und Mistarten stehen beim Erfassen zur Auswahl.</p>
+    <div id="listen-verwaltung"></div>
+  </div>
+  <div class="card">
     <h2 style="margin-top:0">Fassungsvermögen</h2>
     <label for="set-fass">Güllefass (m³)</label>
     <input type="text" inputmode="decimal" id="set-fass" value="10,5">
@@ -459,11 +493,18 @@ nav.tabs button.on{color:var(--accent);background:var(--accent-soft);font-weight
 
 <script>
 const LS={fl:"gd_flaechen",au:"gd_ausbringungen",set:"gd_settings"};
+const LISTEN_DEFS={
+  kulturen:{ls:"gd_kulturen",label:"Kulturen",defaults:["Dauergrünland","intensives Dauergrünland","Silomais","Winterweizen"]},
+  guellearten:{ls:"gd_guellearten",label:"Güllearten",defaults:["Milchviehgülle","Biogasgülle","Jauche"]},
+  mistarten:{ls:"gd_mistarten",label:"Mistarten",defaults:["Rindermist"]}
+};
 const load=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d;}catch{return d;}};
 const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(err){}};
 let flaechen=load(LS.fl,[]);
 let eintraege=load(LS.au,[]);
 let settings=load(LS.set,{fassVolumen:10.5,streuerVolumen:8});
+const loadListe=cat=>load(LISTEN_DEFS[cat].ls,LISTEN_DEFS[cat].defaults);
+const saveListe=(cat,arr)=>save(LISTEN_DEFS[cat].ls,arr);
 const fassungFuer=material=>material==="mist"?settings.streuerVolumen:settings.fassVolumen;
 const $=s=>document.querySelector(s);
 const fmt=n=>Number(n).toLocaleString("de-DE",{maximumFractionDigits:2});
@@ -490,8 +531,37 @@ function checkEinarbeitung(ausbringungIso,einarbIso){
   if(!einarbIso)return null;
   const a=new Date(ausbringungIso).getTime(),e=new Date(einarbIso).getTime();
   if(e<a)return"Die Einarbeitung liegt vor der Ausbringung – bitte Datum und Uhrzeit nochmal überdenken.";
-  if(e-a>24*3600*1000)return"Die Einarbeitung liegt mehr als 24 Stunden nach der Ausbringung – bitte Datum und Uhrzeit nochmal überdenken.";
   return null;
+}
+function einarbVerspaetet(ausbringungIso,einarbIso){
+  if(!ausbringungIso||!einarbIso)return false;
+  return new Date(einarbIso).getTime()-new Date(ausbringungIso).getTime()>4*3600*1000;
+}
+function fillListSelect(sel,items,emptyLabel){
+  const cur=sel.value;
+  sel.innerHTML="";
+  const empty=document.createElement("option");
+  empty.value=""; empty.textContent=emptyLabel;
+  sel.appendChild(empty);
+  items.forEach(n=>{
+    const o=document.createElement("option");
+    o.value=o.textContent=n;
+    sel.appendChild(o);
+  });
+  if(cur&&![...sel.options].some(o=>o.value===cur)){
+    const o=document.createElement("option");
+    o.value=o.textContent=cur;
+    sel.appendChild(o);
+  }
+  sel.value=cur;
+}
+function setListValue(sel,val){
+  if(val&&![...sel.options].some(o=>o.value===val)){
+    const o=document.createElement("option");
+    o.value=o.textContent=val;
+    sel.appendChild(o);
+  }
+  sel.value=val||"";
 }
 function segInit(id,onChange){
   const seg=$(id);
@@ -511,9 +581,13 @@ function updateFassLabel(){
   $("#e-modus-fass-btn").textContent=isMist?"Fuhren":"Fässer";
   $("#e-fass-label").textContent=isMist?"Anzahl Fuhren":"Anzahl Fässer";
   $("#e-sep-wrap").style.display=isMist?"none":"block";
+  $("#e-duenger-label").textContent=isMist?"Mistart":"Gülleart";
+  $("#e-verfahren-wrap").style.display=isMist?"none":"block";
+  fillListSelect($("#e-duenger"),loadListe(isMist?"mistarten":"guellearten"),"– wählen –");
 }
-const eMat=segInit("#e-mat",v=>{updateFassLabel();eCalc();});
+const eMat=segInit("#e-mat",v=>{$("#e-duenger").value="";updateFassLabel();eCalc();});
 const eSep=segInit("#e-sep");
+const eVerfahren=segInit("#e-verfahren");
 const eModus=segInit("#e-modus",v=>{
   $("#e-fass-wrap").style.display=v==="fass"?"block":"none";
   $("#e-m3-wrap").style.display=v==="m3"?"block":"none";
@@ -524,15 +598,19 @@ $("#fl-save").addEventListener("click",()=>{
   const name=$("#fl-name").value.trim();
   const ha=num($("#fl-ha"));
   const feldstück=$("#fl-feldstuck").value.trim();
+  const schlag=$("#fl-schlag").value.trim();
+  const kultur=$("#fl-kultur").value;
   if(!name || ha<=0) {notify("Bitte Name und Größe eingeben");return;}
   if(flEditId){
     const f=flaechen.find(e=>e.id===flEditId);
     f.name=name;
     f.feldstückNummer=feldstück;
+    f.schlagNummer=schlag;
+    f.kultur=kultur;
     f.kategorie=flKat();
     f.groesseHa=ha;
   }else{
-    flaechen.push({id:uid(),name,feldstückNummer:feldstück,kategorie:flKat(),groesseHa:ha});
+    flaechen.push({id:uid(),name,feldstückNummer:feldstück,schlagNummer:schlag,kultur,kategorie:flKat(),groesseHa:ha});
   }
   save(LS.fl,flaechen);
   cancelFlEdit();
@@ -558,8 +636,15 @@ $("#e-flaeche").addEventListener("change",()=>{
   const fid=$("#e-flaeche").value;
   const f=flaechen.find(x=>x.id===fid);
   $("#e-einarb-wrap").style.display=(f&&f.kategorie==="acker")?"block":"none";
+  if(f&&f.kultur)setListValue($("#e-kultur"),f.kultur);
   eCalc();
 });
+function updateGrundWrap(){
+  const late=einarbVerspaetet($("#e-datum").value,$("#e-einarb").value);
+  $("#e-grund-wrap").style.display=late?"block":"none";
+}
+$("#e-datum").addEventListener("change",updateGrundWrap);
+$("#e-einarb").addEventListener("change",updateGrundWrap);
 
 function eCalc(){
   const modus=eModus();
@@ -577,6 +662,10 @@ function eCalc(){
 function cancelEdit(){
   eEditId=null;
   $("#e-flaeche").value="";$("#e-fass").value="";$("#e-m3").value="";$("#e-proha").value="";$("#e-einarb").value="";
+  $("#e-kultur").value="";$("#e-duenger").value="";$("#e-grund").value="";
+  $("#e-grund-wrap").style.display="none";
+  document.querySelectorAll("#e-verfahren button").forEach(b=>b.classList.remove("on"));
+  $("#e-verfahren").querySelector('button[data-v="Schleppschuh"]').classList.add("on");
   $("#e-save").textContent="Eintrag speichern";
   $("#e-cancel").style.display="none";
   $("#e-delete").style.display="none";
@@ -609,24 +698,35 @@ $("#e-save").addEventListener("click",()=>{
     menge=proha*f.groesseHa;
   }
   const f=flaechen.find(x=>x.id===fid);
-  let einarb=null;
+  let einarb=null,einarbGrund=null;
   if(f&&f.kategorie==="acker"&&$("#e-einarb").value){
     einarb=$("#e-einarb").value;
     const err=checkEinarbeitung(datum,einarb);
     if(err){notify(err);return;}
+    if(einarbVerspaetet(datum,einarb)){
+      einarbGrund=$("#e-grund").value.trim();
+      if(!einarbGrund){notify("Einarbeitung mehr als 4 Stunden nach der Ausbringung – bitte Begründung eingeben");return;}
+    }
   }
   const material=eMat();
   const separiert=material==="guelle"?(eSep()==="ja"):null;
+  const kultur=$("#e-kultur").value;
+  const duengerart=$("#e-duenger").value;
+  const verfahren=material==="guelle"?eVerfahren():null;
   if(eEditId){
     const entry=eintraege.find(e=>e.id===eEditId);
     entry.flaecheId=fid;
     entry.datumZeit=datum;
     entry.material=material;
     entry.separiert=separiert;
+    entry.kultur=kultur;
+    entry.duengerart=duengerart;
+    entry.verfahren=verfahren;
     entry.mengeM3=Math.round(menge*100)/100;
     entry.einarbeitungZeit=einarb;
+    entry.einarbGrund=einarbGrund;
   }else{
-    eintraege.push({id:uid(),flaecheId:fid,datumZeit:datum,material,separiert,mengeM3:Math.round(menge*100)/100,einarbeitungZeit:einarb});
+    eintraege.push({id:uid(),flaecheId:fid,datumZeit:datum,material,separiert,kultur,duengerart,verfahren,mengeM3:Math.round(menge*100)/100,einarbeitungZeit:einarb,einarbGrund});
   }
   save(LS.au,eintraege);
   cancelEdit();
@@ -659,8 +759,15 @@ $("#e-delete").addEventListener("click",()=>{
   });
 });
 
-const sMat=segInit("#s-mat",v=>{$("#s-sep-wrap").style.display=v==="mist"?"none":"block";});
+const sMat=segInit("#s-mat",v=>{
+  $("#s-sep-wrap").style.display=v==="mist"?"none":"block";
+  $("#s-duenger-label").textContent=v==="mist"?"Mistart":"Gülleart";
+  $("#s-verfahren-wrap").style.display=v==="mist"?"none":"block";
+  $("#s-duenger").value="";
+  fillListSelect($("#s-duenger"),loadListe(v==="mist"?"mistarten":"guellearten"),"– wählen –");
+});
 const sSep=segInit("#s-sep");
+const sVerfahren=segInit("#s-verfahren");
 function renderSammelFlaechen(){
   const box=$("#s-flaechen");
   if(!flaechen.length){box.innerHTML="<p>Noch keine Flächen</p>";return;}
@@ -674,7 +781,7 @@ function renderSammelFlaechen(){
       const sub=document.createElement("div");
       sub.className="subfield";
       sub.id=`s-sub-${f.id}`;
-      sub.innerHTML=`<label for="s-e-${f.id}">Einarbeitung ${xmlEsc(f.name)} (optional)</label><input type="datetime-local" id="s-e-${f.id}">`;
+      sub.innerHTML=`<label for="s-e-${f.id}">Einarbeitung ${xmlEsc(f.name)} (optional)</label><input type="datetime-local" id="s-e-${f.id}"><div id="s-g-wrap-${f.id}" style="display:none"><label for="s-g-${f.id}">Begründung verspätete Einarbeitung</label><input type="text" id="s-g-${f.id}" placeholder="z. B. schlechte Witterung"></div>`;
       box.appendChild(sub);
     }
   });
@@ -685,6 +792,11 @@ function sUpdate(){
     const sub=document.querySelector(`#s-sub-${f.id}`);
     if(sub){
       sub.style.display=document.querySelector(`#s-f-${f.id}`)?.checked?"block":"none";
+      const gWrap=document.querySelector(`#s-g-wrap-${f.id}`);
+      if(gWrap){
+        const late=einarbVerspaetet($("#s-datum").value,document.querySelector(`#s-e-${f.id}`)?.value);
+        gWrap.style.display=late?"block":"none";
+      }
     }
   });
   const proHa=num($("#s-proha"));
@@ -697,6 +809,7 @@ function sUpdate(){
   }else calc.style.display="none";
 }
 $("#s-proha").addEventListener("input",sUpdate);
+$("#s-datum").addEventListener("change",sUpdate);
 $("#s-save").addEventListener("click",()=>{
   const datum=$("#s-datum").value;
   if(!datum){notify("Datum eingeben");return;}
@@ -704,20 +817,28 @@ $("#s-save").addEventListener("click",()=>{
   if(proHa<=0){notify("Menge pro ha eingeben");return;}
   const sel=flaechen.filter(f=>document.querySelector(`#s-f-${f.id}`)?.checked);
   if(!sel.length){notify("Mindestens eine Fläche wählen");return;}
+  const gruende={};
   for(const f of sel){
     if(f.kategorie==="acker"){
       const inp=document.querySelector(`#s-e-${f.id}`);
       if(inp&&inp.value){
         const err=checkEinarbeitung(datum,inp.value);
         if(err){notify(`${f.name}: ${err}`);return;}
+        if(einarbVerspaetet(datum,inp.value)){
+          const grund=document.querySelector(`#s-g-${f.id}`)?.value.trim();
+          if(!grund){notify(`${f.name}: Einarbeitung mehr als 4 Stunden nach der Ausbringung – bitte Begründung eingeben`);return;}
+          gruende[f.id]=grund;
+        }
       }
     }
   }
   const sMaterial=sMat();
   const sSepariert=sMaterial==="guelle"?(sSep()==="ja"):null;
+  const sDuengerart=$("#s-duenger").value;
+  const sVerf=sMaterial==="guelle"?sVerfahren():null;
   sel.forEach(f=>{
     const inp=f.kategorie==="acker"?document.querySelector(`#s-e-${f.id}`):null;
-    eintraege.push({id:uid(),flaecheId:f.id,datumZeit:datum,material:sMaterial,separiert:sSepariert,mengeM3:Math.round(proHa*f.groesseHa*100)/100,einarbeitungZeit:inp&&inp.value?inp.value:null});
+    eintraege.push({id:uid(),flaecheId:f.id,datumZeit:datum,material:sMaterial,separiert:sSepariert,kultur:f.kultur||"",duengerart:sDuengerart,verfahren:sVerf,mengeM3:Math.round(proHa*f.groesseHa*100)/100,einarbeitungZeit:inp&&inp.value?inp.value:null,einarbGrund:gruende[f.id]||null});
   });
   save(LS.au,eintraege);
   notify(`${sel.length} Einträge gespeichert`);
@@ -735,6 +856,95 @@ $("#set-save").addEventListener("click",()=>{
   save(LS.set,settings);
   eCalc();
 });
+
+// ===== Verwaltung Kulturen / Güllearten / Mistarten (unter „Mehr") =====
+const listenEdit={};
+function refreshListSelects(){
+  fillListSelect($("#fl-kultur"),loadListe("kulturen"),"– keine –");
+  fillListSelect($("#e-kultur"),loadListe("kulturen"),"– wählen –");
+  fillListSelect($("#e-duenger"),loadListe(eMat()==="mist"?"mistarten":"guellearten"),"– wählen –");
+  fillListSelect($("#s-duenger"),loadListe(sMat()==="mist"?"mistarten":"guellearten"),"– wählen –");
+}
+function renderListenVerwaltung(){
+  const box=$("#listen-verwaltung");
+  box.innerHTML="";
+  Object.keys(LISTEN_DEFS).forEach(cat=>{
+    const def=LISTEN_DEFS[cat];
+    const items=loadListe(cat);
+    const wrap=document.createElement("div");
+    wrap.className="preset-cat";
+    const h=document.createElement("h3");
+    h.textContent=def.label;
+    wrap.appendChild(h);
+    items.forEach((name,idx)=>{
+      const row=document.createElement("div");
+      row.className="preset-item";
+      row.innerHTML=`<div class="grow">${xmlEsc(name)}</div>`;
+      const edBtn=document.createElement("button");
+      edBtn.className="small"; edBtn.type="button"; edBtn.textContent="✎";
+      edBtn.addEventListener("click",()=>{listenEdit[cat]=idx;renderListenVerwaltung();});
+      const delBtn=document.createElement("button");
+      delBtn.className="small danger"; delBtn.type="button"; delBtn.textContent="Löschen";
+      delBtn.addEventListener("click",()=>{
+        showConfirm(`"${name}" wirklich löschen?`,()=>{
+          const arr=loadListe(cat);
+          arr.splice(idx,1);
+          saveListe(cat,arr);
+          delete listenEdit[cat];
+          renderListenVerwaltung();
+          refreshListSelects();
+        });
+      });
+      row.appendChild(edBtn);
+      row.appendChild(delBtn);
+      wrap.appendChild(row);
+    });
+    const editIdx=listenEdit[cat];
+    const isEdit=Number.isInteger(editIdx)&&editIdx<items.length;
+    const addWrap=document.createElement("div");
+    addWrap.className="preset-add";
+    const inp=document.createElement("input");
+    inp.type="text";
+    inp.placeholder="Bezeichnung";
+    inp.style.gridColumn="1/-1";
+    if(isEdit)inp.value=items[editIdx];
+    const btn=document.createElement("button");
+    btn.type="button"; btn.className="small";
+    btn.textContent=isEdit?"Speichern":"Hinzufügen";
+    btn.addEventListener("click",()=>{
+      const name=inp.value.trim();
+      if(!name){notify("Bitte Bezeichnung eingeben");return;}
+      const arr=loadListe(cat);
+      if(isEdit){
+        const old=arr[editIdx];
+        if(arr.some((x,i)=>x===name&&i!==editIdx)){notify("Diese Bezeichnung gibt es bereits");return;}
+        arr[editIdx]=name;
+        if(cat==="kulturen"&&old!==name){
+          flaechen.forEach(f=>{if(f.kultur===old)f.kultur=name;});
+          save(LS.fl,flaechen);
+          render();
+        }
+        delete listenEdit[cat];
+      }else{
+        if(arr.includes(name)){notify("Diese Bezeichnung gibt es bereits");return;}
+        arr.push(name);
+      }
+      saveListe(cat,arr);
+      renderListenVerwaltung();
+      refreshListSelects();
+    });
+    addWrap.appendChild(inp);
+    addWrap.appendChild(btn);
+    if(isEdit){
+      const cancel=document.createElement("button");
+      cancel.type="button"; cancel.className="small"; cancel.textContent="Abbrechen";
+      cancel.addEventListener("click",()=>{delete listenEdit[cat];renderListenVerwaltung();});
+      addWrap.appendChild(cancel);
+    }
+    wrap.appendChild(addWrap);
+    box.appendChild(wrap);
+  });
+}
 
 function fillSelects(){
   const e=$("#e-flaeche");
@@ -767,8 +977,10 @@ function renderFlaechen(){
   flaechen.forEach(f=>{
     const div=document.createElement("div");
     div.className="list-item";
-    const feldstuck=f.feldstückNummer?` · Feldstück ${xmlEsc(f.feldstückNummer)}`:"";
-    div.innerHTML=`<div class="grow"><div class="title">${xmlEsc(f.name)}</div><div class="meta">${fmt(f.groesseHa)} ha · ${f.kategorie}${feldstuck}</div></div><button class="small" onclick="editFlaeche('${f.id}')">✎</button>`;
+    const nummer=[f.feldstückNummer,f.schlagNummer].filter(Boolean).join("/");
+    const feldstuck=nummer?` · Feldstück ${xmlEsc(nummer)}`:"";
+    const kultur=f.kultur?` · ${xmlEsc(f.kultur)}`:"";
+    div.innerHTML=`<div class="grow"><div class="title">${xmlEsc(f.name)}</div><div class="meta">${fmt(f.groesseHa)} ha · ${f.kategorie}${feldstuck}${kultur}</div></div><button class="small" onclick="editFlaeche('${f.id}')">✎</button>`;
     box.appendChild(div);
   });
 }
@@ -780,6 +992,8 @@ function editFlaeche(id){
   flEditId=id;
   $("#fl-name").value=f.name;
   $("#fl-feldstuck").value=f.feldstückNummer||"";
+  $("#fl-schlag").value=f.schlagNummer||"";
+  setListValue($("#fl-kultur"),f.kultur||"");
   document.querySelectorAll("#fl-kat button").forEach(b=>b.classList.remove("on"));
   $("#fl-kat").querySelector(`button[data-v="${f.kategorie}"]`).classList.add("on");
   $("#fl-ha").value=f.groesseHa;
@@ -794,6 +1008,8 @@ function cancelFlEdit(){
   flEditId=null;
   $("#fl-name").value="";
   $("#fl-feldstuck").value="";
+  $("#fl-schlag").value="";
+  $("#fl-kultur").value="";
   $("#fl-ha").value="";
   $("#fl-save").textContent="Fläche speichern";
   $("#fl-cancel").style.display="none";
@@ -819,12 +1035,18 @@ function editEintrag(id){
   document.querySelectorAll("#e-sep button").forEach(b=>b.classList.remove("on"));
   $("#e-sep").querySelector(`button[data-v="${entry.separiert?"ja":"nein"}"]`).classList.add("on");
   updateFassLabel();
+  setListValue($("#e-kultur"),entry.kultur||"");
+  setListValue($("#e-duenger"),entry.duengerart||"");
+  document.querySelectorAll("#e-verfahren button").forEach(b=>b.classList.remove("on"));
+  $("#e-verfahren").querySelector(`button[data-v="${entry.verfahren==="Schleppschlauch"?"Schleppschlauch":"Schleppschuh"}"]`).classList.add("on");
   if(f&&f.kategorie==="acker"){
     $("#e-einarb-wrap").style.display="block";
     $("#e-einarb").value=entry.einarbeitungZeit||"";
   }else{
     $("#e-einarb-wrap").style.display="none";
   }
+  $("#e-grund").value=entry.einarbGrund||"";
+  updateGrundWrap();
   $("#e-m3-wrap").style.display="block";
   $("#e-fass-wrap").style.display="none";
   $("#e-proha-wrap").style.display="none";
@@ -980,11 +1202,11 @@ function xCellNum(colIdx,rowNum,value,style){
   return `<c r="${cellRef(colIdx,rowNum)}"${s}><v>${value}</v></c>`;
 }
 
-function buildXlsxSheet({name,list,includeSep,summaryRows,filterText}){
-  const headers=["Datum","Uhrzeit","Fläche","Kategorie"];
+function buildXlsxSheet({name,list,includeSep,artLabel,summaryRows,filterText}){
+  const headers=["Datum der Ausbringung","Feldstücksname","Feldstück-/Schlagnummer","Kultur",artLabel,"Ausbringverfahren","ha","Menge je ha (m³)","Menge Ausbringung (m³)"];
+  const mengeCol=headers.length-1;
   if(includeSep) headers.push("Separiert");
-  headers.push("Menge (m³)","Einarbeitung");
-  const mengeCol=headers.length-2;
+  headers.push("Einarbeitungszeitpunkt","Begründung verspätete Einarbeitung");
   const lastCol=headers.length-1;
   const heute=new Date();
   const rows=[];
@@ -1004,12 +1226,22 @@ function buildXlsxSheet({name,list,includeSep,summaryRows,filterText}){
       let ci=0;
       const cells=[];
       cells.push(xCellText(ci++,r,d.toLocaleDateString("de-DE")));
-      cells.push(xCellText(ci++,r,d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})));
       cells.push(xCellText(ci++,r,f?.name||""));
-      cells.push(xCellText(ci++,r,f?.kategorie==="acker"?"Acker":f?.kategorie==="wiese"?"Wiese":""));
-      if(includeSep) cells.push(xCellText(ci++,r,sepLabel(e)));
+      cells.push(xCellText(ci++,r,[f?.feldstückNummer,f?.schlagNummer].filter(Boolean).join("/")));
+      cells.push(xCellText(ci++,r,e.kultur||""));
+      cells.push(xCellText(ci++,r,e.duengerart||""));
+      cells.push(xCellText(ci++,r,e.verfahren||""));
+      if(f&&f.groesseHa>0){
+        cells.push(xCellNum(ci++,r,f.groesseHa,"1"));
+        cells.push(xCellNum(ci++,r,Math.round(e.mengeM3/f.groesseHa*100)/100,"1"));
+      }else{
+        cells.push(xCellText(ci++,r,""));
+        cells.push(xCellText(ci++,r,""));
+      }
       cells.push(xCellNum(ci++,r,e.mengeM3,"1"));
+      if(includeSep) cells.push(xCellText(ci++,r,sepLabel(e)));
       cells.push(xCellText(ci++,r,e.einarbeitungZeit?fmtDT(e.einarbeitungZeit):"–"));
+      cells.push(xCellText(ci++,r,e.einarbGrund||""));
       rows.push(`<row r="${r}">${cells.join("")}</row>`);
       r++;
     });
@@ -1099,11 +1331,11 @@ function exportExcel(){
   const mistTotal=Math.round(mistList.reduce((s,e)=>s+e.mengeM3,0)*100)/100;
   const filterText=exportFilterText();
   const guelleXml=buildXlsxSheet({
-    name:"Gülle",list:guelleList,includeSep:true,filterText,
+    name:"Gülle",list:guelleList,includeSep:true,artLabel:"Gülleart",filterText,
     summaryRows:[{label:"Gesamt Gülle",value:guelleTotal},{label:"davon separiert",value:guelleSepTotal}]
   });
   const mistXml=buildXlsxSheet({
-    name:"Mist",list:mistList,includeSep:false,filterText,
+    name:"Mist",list:mistList,includeSep:false,artLabel:"Mistart",filterText,
     summaryRows:[{label:"Gesamt Mist",value:mistTotal}]
   });
   const blob=buildXlsxBlob([{name:"Gülle",xml:guelleXml},{name:"Mist",xml:mistXml}]);
@@ -1445,6 +1677,7 @@ function initRechner(){
 function render(){
   renderFlaechen();
   fillSelects();
+  refreshListSelects();
   fillJahrSelect();
   renderSammelFlaechen();
   renderUebersicht();
@@ -1460,6 +1693,7 @@ $("#set-streuer").value=settings.streuerVolumen;
 updateFassLabel();
 
 render();
+renderListenVerwaltung();
 initRechner();
 
 if(navigator.storage && navigator.storage.persist) navigator.storage.persist();

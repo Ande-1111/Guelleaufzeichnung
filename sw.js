@@ -1,4 +1,4 @@
-const CACHE_NAME = "guelle-mist-v2";
+const CACHE_NAME = "guelle-mist-v3";
 const ASSETS = ["guelle-app.html", "manifest.json", "icon.svg"];
 
 self.addEventListener("install", event => {
