@@ -582,11 +582,12 @@ function checkDauerPlausibel(beginnIso,endeIso,maxStunden){
   if(stunden>maxStunden)return`Die Dauer beträgt laut Eingabe ${fmt(stunden)} Stunden – das wirkt ungewöhnlich lange.`;
   return null;
 }
-// Ausbringung-Ende (nicht -Beginn) ist der massgebliche Referenzpunkt, da erst dann die Ausbringung tatsächlich abgeschlossen ist.
-function checkEinarbeitung(ausbringEndeIso,einarbBeginnIso){
-  if(!ausbringEndeIso||!einarbBeginnIso)return null;
-  const a=new Date(ausbringEndeIso).getTime(),e=new Date(einarbBeginnIso).getTime();
-  if(e<a)return"Die Einarbeitung liegt vor dem Ende der Ausbringung – bitte Datum und Uhrzeit nochmal überdenken.";
+// Ausbring-Beginn ist der massgebliche Referenzpunkt: Einarbeitung darf sich mit der Ausbringung überschneiden,
+// aber nicht beginnen, bevor die Ausbringung überhaupt gestartet ist.
+function checkEinarbeitung(ausbringBeginnIso,einarbBeginnIso){
+  if(!ausbringBeginnIso||!einarbBeginnIso)return null;
+  const a=new Date(ausbringBeginnIso).getTime(),e=new Date(einarbBeginnIso).getTime();
+  if(e<a)return"Die Einarbeitung liegt vor dem Beginn der Ausbringung – bitte Datum und Uhrzeit nochmal überdenken.";
   return null;
 }
 function einarbVerspaetet(ausbringEndeIso,einarbBeginnIso){
@@ -783,7 +784,7 @@ $("#e-save").addEventListener("click",()=>{
       if(warnEinarb)warnings.push(warnEinarb);
     }
     if(einarbBeginn){
-      const err=checkEinarbeitung(ende,einarbBeginn);
+      const err=checkEinarbeitung(beginn,einarbBeginn);
       if(err){notify(err);return;}
       if(einarbVerspaetet(ende,einarbBeginn)){
         einarbGrund=$("#e-grund").value.trim();
@@ -923,7 +924,7 @@ $("#s-save").addEventListener("click",()=>{
           const warnEinarb=checkDauerPlausibel(inpB.value,inpE.value,48);
           if(warnEinarb)warnings.push(`${f.name}: ${warnEinarb}`);
         }
-        const err=checkEinarbeitung(ende,inpB.value);
+        const err=checkEinarbeitung(beginn,inpB.value);
         if(err){notify(`${f.name}: ${err}`);return;}
         if(einarbVerspaetet(ende,inpB.value)){
           const grund=document.querySelector(`#s-g-${f.id}`)?.value.trim();
@@ -1236,7 +1237,7 @@ $("#quick-save").addEventListener("click",()=>{
   }
   let einarbGrund=entry.einarbGrund;
   if(finalAusbringEnde&&finalEinarbBeginn){
-    const err=checkEinarbeitung(finalAusbringEnde,finalEinarbBeginn);
+    const err=checkEinarbeitung(entry.ausbringBeginn,finalEinarbBeginn);
     if(err){showErr(err);return;}
     if(einarbVerspaetet(finalAusbringEnde,finalEinarbBeginn)&&!einarbGrund){
       if(!$("#quick-grund")){
